@@ -1,0 +1,31 @@
+{
+  "rooms": {
+    "EKNU43": {
+      "id": "5fd1270c-76d7-4f98-8edc-927d06ce9102",
+      "code": "EKNU43",
+      "creatorWallet": "GC4H63C77AZ4URQKZ7FPWI2JRP4JVRM6OQ2QVNNTU5CO3GF7SAAMQ5L2",
+      "prediction": "will she accept me?",
+      "stakeAmount": 1000,
+      "participants": [
+        {
+          "walletAddress": "GC4H63C77AZ4URQKZ7FPWI2JRP4JVRM6OQ2QVNNTU5CO3GF7SAAMQ5L2",
+          "selectedOption": "No",
+          "amount": 1000,
+          "joinedAt": "2026-04-22T18:28:07.911Z",
+          "transactionHash": "ef4a23fe441d3e0fa8c6f57214cc7f610afab73d9ef4b453a0fb72d990c0d2a1"
+        }
+      ],
+      "totalPool": 1000,
+      "status": "resolved",
+      "expiryTime": "2026-04-29T18:27:38.658Z",
+      "createdAt": "2026-04-22T18:27:42.664Z",
+      "options": [
+        "Yes",
+        "No"
+      ],
+      "escrowPublicKey": "GA4AFFTPJH7VFT2FUQKYSKTZXHVUWFSW6F3WNATWVPX6QC62KN6QZMUI",
+      "escrowSecret": "SBGQWYCONNFQNRCFJ2S3HJTXZWFWVNXL3LM6YGGRFU23CIPDJJMVCEUX",
+      "winningOption": "Yes"
+    }
+  }
+}
