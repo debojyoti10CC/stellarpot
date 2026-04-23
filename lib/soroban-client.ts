@@ -129,25 +129,35 @@ async function buildContractCall(
   const simulated = await server.simulateTransaction(tx);
 
   if (StellarSdk.rpc.Api.isSimulationError(simulated)) {
-    // Extract detailed error info
+    // Map contract error codes to human-readable messages
+    const CONTRACT_ERRORS: Record<number, string> = {
+      1: 'Contract not initialized. The admin must call initialize() first.',
+      2: 'Room not found. This room does not exist on-chain.',
+      3: 'Room is not open. It may have already been resolved or cancelled.',
+      4: 'You have already placed a bet in this room.',
+      5: 'Invalid option selected.',
+      6: 'Only the room creator can perform this action.',
+      7: 'Room has not expired yet.',
+      8: 'Insufficient funds to place this bet.',
+      9: 'No bets have been placed in this room yet.',
+      10: 'No winners found.',
+      11: 'Contract has already been initialized.',
+    };
+
     const simErr = simulated as any;
-    let errDetail = simErr.error || 'Unknown simulation error';
+    const rawError = simErr.error || '';
     
-    // Parse diagnostic events for better error messages
-    if (simErr.events && simErr.events.length > 0) {
-      const eventDetails = simErr.events
-        .map((e: any) => {
-          try {
-            return JSON.stringify(e);
-          } catch {
-            return String(e);
-          }
-        })
-        .join('\n');
-      errDetail += `\nEvent log (newest first):\n${eventDetails}`;
+    // Try to extract the error code from "Error(Contract, #N)"
+    const codeMatch = rawError.match(/Error\(Contract,\s*#(\d+)\)/);
+    if (codeMatch) {
+      const code = parseInt(codeMatch[1], 10);
+      const friendly = CONTRACT_ERRORS[code] || `Unknown contract error #${code}`;
+      throw new Error(friendly);
     }
     
-    throw new Error(`Simulation error: ${errDetail}`);
+    // Fallback: just show a clean version of the error string
+    const cleanError = rawError.replace(/\{[^}]*\}/g, '').trim() || 'Transaction simulation failed';
+    throw new Error(cleanError);
   }
 
   const prepared = StellarSdk.rpc.assembleTransaction(tx, simulated).build();
@@ -306,14 +316,28 @@ function parseRoom(scVal: StellarSdk.xdr.ScVal, roomId: number): OnChainRoom {
     'Cancelled': 'Cancelled',
   };
 
-  // Parse status from enum
+  // Parse status from Soroban enum — the SDK can return it in different shapes
   let status: 'Open' | 'Resolved' | 'Cancelled' = 'Open';
-  if (typeof native.status === 'string') {
-    status = statusMap[native.status] || 'Open';
-  } else if (native.status && typeof native.status === 'object') {
-    const key = Object.keys(native.status)[0] || Object.keys(statusMap).find(k => native.status[k] !== undefined) || 'Open';
-    status = statusMap[key] || 'Open';
+  const rawStatus = native.status;
+  
+  if (typeof rawStatus === 'string') {
+    // Direct string: "Open", "Resolved", "Cancelled"
+    if (rawStatus === 'Resolved') status = 'Resolved';
+    else if (rawStatus === 'Cancelled') status = 'Cancelled';
+    else status = 'Open';
+  } else if (Array.isArray(rawStatus)) {
+    // Some SDK versions return enums as [variantName, value]
+    const variant = String(rawStatus[0]);
+    if (variant === 'Resolved') status = 'Resolved';
+    else if (variant === 'Cancelled') status = 'Cancelled';
+  } else if (rawStatus && typeof rawStatus === 'object') {
+    // Object form: { Open: undefined } or { Resolved: undefined }
+    const keys = Object.keys(rawStatus);
+    if (keys.includes('Resolved')) status = 'Resolved';
+    else if (keys.includes('Cancelled')) status = 'Cancelled';
   }
+  
+  console.log(`[parseRoom] Room ${roomId} status:`, rawStatus, '→', status);
 
   const bets: OnChainBet[] = (native.bets || []).map((b: any) => ({
     bettor: typeof b.bettor === 'string' ? b.bettor : b.bettor.toString(),
