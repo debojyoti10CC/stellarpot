@@ -362,9 +362,9 @@ export function RoomView({ roomCode }: RoomViewProps) {
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
         
         {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.04]">
-          <div className="flex items-center gap-2.5">
-            <Badge variant="outline" className={`${sc.class} gap-1.5 text-xs font-medium`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04] bg-white/[0.005]">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className={`${sc.class} gap-1.5 text-xs font-medium px-2 py-0.5`}>
               {room.status === 'Open' && (
                 <span className="relative flex h-1.5 w-1.5">
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${sc.dot} opacity-75`} />
@@ -373,18 +373,20 @@ export function RoomView({ roomCode }: RoomViewProps) {
               )}
               {sc.label}
             </Badge>
-            <span className="text-xs font-mono text-muted-foreground/50 tracking-wider">{displayCode}</span>
-            {isCreator && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">You</Badge>}
+            {isCreator && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-white/[0.1]">Creator</Badge>}
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="ghost" size="sm" onClick={copyRoomLink} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-              {copiedLink ? <Check className="w-3 h-3 mr-1" /> : <Share2 className="w-3 h-3 mr-1" />}
-              Share
-            </Button>
-            <Button variant="ghost" size="sm" onClick={copyContractId} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-              {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
-              Contract
-            </Button>
+          
+          {/* Room Code Prominent Display */}
+          <div className="flex items-center gap-2">
+             <span className="text-xs font-medium text-muted-foreground/60 hidden sm:inline-block">Room Code:</span>
+             <button 
+               onClick={copyRoomLink}
+               className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40 transition-all active:scale-95"
+               title="Copy Invite Link"
+             >
+               <span className="font-mono text-sm font-bold text-indigo-400 tracking-[0.15em] uppercase">{displayCode}</span>
+               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400/50 group-hover:text-indigo-400" />}
+             </button>
           </div>
         </div>
 
