@@ -1,81 +1,224 @@
-# StellarPot: Private Betting for Friends 🪐
+<div align="center">
 
-StellarPot is a **100% decentralized, non-custodial** private betting platform built on the **Stellar network** using **Soroban smart contracts**. Unlike traditional betting sites, StellarPot has no middleman, no house edge, and no centralized control. The contract acts as a neutral escrow that ensures fair payouts directly to your wallet.
+<img src="https://img.shields.io/badge/%F0%9F%AA%90-StellarPot-7C3AED?style=for-the-badge&labelColor=0D0D0D" alt="StellarPot" height="40" />
 
----
+# StellarPot
 
-## 🔗 Live Contract Details (Testnet)
+**Private, peer-to-peer betting — no house, no middleman, no trust required.**
 
-| Component | Asset / ID | Explorer Link |
-| :--- | :--- | :--- |
-| **Core Smart Contract** | `CC5CLW64G7B2HY2PHIQWEETUON5LGKXTIDXS2K5HU4OVHUEAJEYEWT4N` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CC5CLW64G7B2HY2PHIQWEETUON5LGKXTIDXS2K5HU4OVHUEAJEYEWT4N) |
-| **Native XLM Wrapper (SAC)** | `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC` | [View on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Stellar Testnet](https://img.shields.io/badge/Network-Stellar_Testnet-7B61FF?logo=stellar)](https://stellar.expert)
+[![Built with Soroban](https://img.shields.io/badge/Smart_Contract-Soroban-FF6B35)](https://soroban.stellar.org)
+[![Next.js 15](https://img.shields.io/badge/Frontend-Next.js_15-000000?logo=next.js)](https://nextjs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
----
+[Live Demo](https://stellarpot.xyz) · [Contract on Stellar.Expert](https://stellar.expert/explorer/testnet/contract/CC5CLW64G7B2HY2PHIQWEETUON5LGKXTIDXS2K5HU4OVHUEAJEYEWT4N) · [Report a Bug](https://github.com/your-org/stellarpot/issues) · [Request a Feature](https://github.com/your-org/stellarpot/discussions)
 
-## 🚀 The Workflow
 
-StellarPot is designed for group chats, friend circles, and private communities. Here is how a typical "Pot" works:
+<img width="1911" height="903" alt="image" src="https://github.com/user-attachments/assets/01a6ee2b-d14d-4166-8032-bc90a3565815" />
 
-1.  **Initialization**: A user connects their **Freighter Wallet** and creates a room by defining a question, options (e.g., "Yes/No"), a fixed stake amount (e.g., 10 XLM), and an expiry time.
-2.  **Obfuscated Sharing**: The platform generates a deterministic, 6-character unguessable code (e.g., `G6X9P`) that maps to the on-chain Room ID. This allows for private sharing without random people guessing the serial ID.
-3.  **Staking**: Friends join the room via the secure link and place their bets. The Soroban contract transfers the XLM from their wallet into the contract's secure escrow.
-4.  **Resolution**: Once the event occurs, the creator selects the winning outcome.
-5.  **Settlement**: The contract automatically calculates the proportional payouts (Total Pool / Winning Stakes) and distributes the funds instantly to all winners. No human can block or steal the funds once the bet is placed.
+[Feedback Form Response List](https://docs.google.com/spreadsheets/d/1GY-XxoULeTnzHpFKZRzc9Lm5Xpj57jVDmqsUrqx33J4/edit?usp=sharing)
+</div>
 
 ---
 
-## 🛠 Technical Architecture
+## Overview
 
-### 1. Smart Contract (Rust / Soroban)
-The core logic resides in `/contracts/stellarpot/src/lib.rs`. It manages:
-- **Escrow**: Holding native XLM using the Stellar Asset Contract (SAC).
-- **State**: Storing `Room` and `Bet` structs in `instance` and `persistent` storage.
-- **Verification**: Using `require_auth()` to ensure only the creator can resolve or cancel a room.
-- **Math**: Precise proportional payout calculation to handle non-integer divisions safely in a decentralized environment.
+StellarPot is a 100% decentralized, non-custodial betting platform for friends and private communities, built on the [Stellar](https://stellar.org) network using [Soroban](https://soroban.stellar.org) smart contracts.
 
-### 2. Secure Frontend (Next.js 15)
-The frontend is a thin, non-custodial layer that talks directly to the blockchain:
-- **No Private Keys**: All signing happens via the Freighter browser extension.
-- **Deterministic Obfuscation**: Uses a mathematical salt to transform serial `u64` IDs into unguessable alphanumeric codes on-the-fly, ensuring privacy without a central database.
-- **Real-time Data**: Polls the Soroban RPC to fetch the latest pool sizes and conviction percentages.
+There is no house edge. There is no operator. There is no centralized escrow. The smart contract *is* the escrow — self-executing, publicly auditable, and incapable of favoring any party. Winnings are distributed automatically and proportionally the moment a result is declared.
 
-### 3. Design System
-- **Framework**: Tailwind CSS 4
-- **Typography**: **Outfit** (Premium Geometric Sans)
-- **Aesthetic**: Monochromatic, technical, and minimalist (Vercel/Linear style).
+> **Status:** Testnet. Do not use with real funds until a mainnet audit is complete.
 
 ---
 
-## 💻 Local Development
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Architecture](#architecture)
+- [Deployed Contracts](#deployed-contracts)
+- [Getting Started](#getting-started)
+- [Local Development](#local-development)
+- [Smart Contract Testing](#smart-contract-testing)
+- [Security Model](#security-model)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## How It Works
+
+StellarPot is built around the concept of a **Pot** — a single-question, fixed-stake betting room shared privately among a group.
+
+```
+Creator defines question + options + stake + expiry
+        │
+        ▼
+  6-character room code generated (e.g. G6X9P)
+        │
+        ▼
+  Friends join via secure link and place bets
+  [XLM transferred from wallet → contract escrow]
+        │
+        ▼
+  Event occurs → Creator declares outcome
+        │
+        ▼
+  Contract calculates proportional payouts
+  [Funds distributed instantly to winners' wallets]
+```
+
+1. **Create** — Connect your [Freighter Wallet](https://freighter.app), define a question, set the options, stake amount, and expiry time.
+2. **Share** — A deterministic 6-character alphanumeric code is generated on-chain. Share it privately — no guessable serial ID is ever exposed.
+3. **Stake** — Friends join via the secure link and place their bet. The Soroban contract pulls XLM directly into escrow.
+4. **Resolve** — Once the event concludes, the creator selects the winning outcome on-chain.
+5. **Settle** — The contract computes `Total Pool ÷ Winning Stakes` and transfers funds proportionally to every winner. No manual step required, and no one can block or redirect the payout.
+
+---
+
+## Architecture
+
+```
+stellarpot/
+├── contracts/
+│   └── stellarpot/
+│       └── src/
+│           └── lib.rs        # Core Soroban smart contract
+├── src/
+│   ├── app/                  # Next.js 15 App Router pages
+│   ├── components/           # UI component library
+│   └── lib/                  # RPC client, wallet utilities, obfuscation
+├── public/
+└── README.md
+```
+
+### Smart Contract (`contracts/stellarpot/src/lib.rs`)
+
+Written in **Rust** and compiled to WASM for the Soroban runtime.
+
+| Concern | Implementation |
+|---|---|
+| **Escrow** | Holds native XLM via the Stellar Asset Contract (SAC) |
+| **State** | `Room` and `Bet` structs in `instance` + `persistent` storage |
+| **Authorization** | `require_auth()` on all creator-gated operations |
+| **Payout Math** | Proportional division with safe integer arithmetic to avoid rounding loss |
+
+### Frontend (`src/`)
+
+A thin, non-custodial **Next.js 15** application that talks directly to the blockchain. No backend, no database.
+
+- **No private keys ever leave the browser.** All transaction signing is delegated to the [Freighter](https://freighter.app) browser extension.
+- **Deterministic obfuscation.** Serial `u64` room IDs are transformed to 6-character alphanumeric codes using a fixed mathematical salt — entirely client-side, no lookup table required.
+- **Real-time data.** Soroban RPC is polled to reflect live pool sizes and conviction percentages.
+
+### Design System
+
+| Token | Value |
+|---|---|
+| **Framework** | Tailwind CSS 4 |
+| **Typeface** | Outfit (Geometric Sans) |
+| **Aesthetic** | Monochromatic · Technical · Minimalist |
+
+---
+
+## Deployed Contracts
+
+> **Network: Stellar Testnet**
+
+| Component | Contract ID |
+|---|---|
+| Core Smart Contract | [`CC5CLW64G7B2HY2PHIQWEETUON5LGKXTIDXS2K5HU4OVHUEAJEYEWT4N`](https://stellar.expert/explorer/testnet/contract/CC5CLW64G7B2HY2PHIQWEETUON5LGKXTIDXS2K5HU4OVHUEAJEYEWT4N) |
+| Native XLM Wrapper (SAC) | [`CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`](https://stellar.expert/explorer/testnet/contract/CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC) |
+
+---
+
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- Rust 1.81+ (with `wasm32-unknown-unknown` target)
-- [Freighter Wallet](https://www.freighter.app/)
 
-### Setup
-1.  **Clone & Install**:
-    ```bash
-    npm install
-    ```
-2.  **Run Development Server**:
-    ```bash
-    npm run dev
-    ```
-3.  **Contract Testing**:
-    ```bash
-    cd contracts/stellarpot
-    cargo test
-    ```
+| Tool | Version |
+|---|---|
+| Node.js | 18+ |
+| Rust | 1.81+ |
+| Rust target | `wasm32-unknown-unknown` |
+| Browser extension | [Freighter Wallet](https://freighter.app) |
+
+```bash
+rustup target add wasm32-unknown-unknown
+```
 
 ---
 
-## 🛡 Security & Trust Model
-- **Non-Custodial**: StellarPot never touches your private keys.
-- **Immutable Logic**: Once a room is created, the rules (stake amount, options) cannot be changed.
-- **Transparency**: Every transaction, bet, and payout is verifiable on the public Stellar ledger.
-- **Admin-Free**: There is no "owner" of the contract that can freeze your funds.
+## Local Development
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/your-org/stellarpot.git
+cd stellarpot
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the development server
+npm run dev
+```
+
+Open `http://localhost:3000` and connect Freighter to **Testnet** before interacting with any contract functions.
 
 ---
-*Built with ❤️ on Stellar Soroban.*
+
+## Smart Contract Testing
+
+```bash
+cd contracts/stellarpot
+cargo test
+```
+
+To build the contract manually:
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+```
+
+---
+
+## Security Model
+
+| Property | Guarantee |
+|---|---|
+| **Non-custodial** | Private keys never leave the user's device |
+| **Immutable rules** | Stake amount and options are locked at room creation |
+| **Transparent** | Every bet, resolution, and payout is verifiable on the public Stellar ledger |
+| **No admin** | No privileged key exists that can freeze, redirect, or drain funds |
+| **Creator-bound resolution** | Only the room creator can declare an outcome, enforced by `require_auth()` at the contract level |
+
+> **Disclaimer:** This project has not undergone a formal third-party security audit. Use on testnet only until an audit is completed and published.
+
+---
+
+## Contributing
+
+Contributions are welcome. Please open an issue to discuss what you'd like to change before submitting a pull request.
+
+```bash
+git checkout -b feature/your-feature-name
+git commit -m "feat: describe your change"
+git push origin feature/your-feature-name
+# Open a pull request
+```
+
+Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+
+---
+
+## License
+
+[MIT](LICENSE) © StellarPot Contributors
+
+---
+
+<div align="center">
+
+Built with ❤️ on [Stellar Soroban](https://soroban.stellar.org)
+
+</div>
