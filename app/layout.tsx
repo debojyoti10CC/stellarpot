@@ -1,12 +1,8 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: '--font-inter',
-  display: 'swap',
-});
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
 export const metadata: Metadata = {
   title: 'StellarPot — Prediction Markets on Stellar',
@@ -19,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} dark`}>
-      <body className="font-sans min-h-screen bg-[#020202] text-foreground">
+    <html lang="en" className={`${outfit.variable}`}>
+      <body className="font-sans min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
         {children}
       </body>
     </html>

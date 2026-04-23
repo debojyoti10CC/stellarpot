@@ -44,8 +44,8 @@ export function JoinRoomForm() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-sm mx-auto p-8 rounded-xl border border-white/[0.06] bg-white/[0.01]">
-        <p className="text-center text-sm text-muted-foreground/60">Connect your wallet to join a room.</p>
+      <div className="max-w-sm mx-auto p-8 rounded-xl border border-border bg-card shadow-sm">
+        <p className="text-center text-sm text-muted-foreground/80">Connect your wallet to join a room.</p>
       </div>
     )
   }
@@ -53,27 +53,27 @@ export function JoinRoomForm() {
   return (
     <div className="max-w-sm mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold">Join Room</h1>
-        <p className="text-sm text-muted-foreground/50 mt-1">Enter a code shared by the room creator</p>
+        <h1 className="text-xl font-semibold text-foreground">Join Room</h1>
+        <p className="text-sm text-muted-foreground/80 mt-1">Enter a code shared by the room creator</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-5 space-y-3">
-          <Label htmlFor="roomCode" className="text-xs text-muted-foreground/60">Room Code</Label>
+        <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-3">
+          <Label htmlFor="roomCode" className="text-xs text-muted-foreground/80">Room Code</Label>
           <Input
             id="roomCode"
             type="text"
             placeholder="e.g. A3K7RP"
             value={roomCode}
             onChange={(e) => { setRoomCode(e.target.value.toUpperCase()); setError('') }}
-            className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 font-mono text-center text-lg tracking-[0.3em] uppercase h-12"
+            className="bg-transparent border-border focus:border-primary/50 font-mono text-center text-lg tracking-[0.3em] uppercase h-12"
             maxLength={10}
             required
           />
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
 
-        <Button type="submit" className="w-full h-11 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-black font-semibold text-sm" disabled={isSearching || !roomCode}>
+        <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm" disabled={isSearching || !roomCode}>
           {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
           Find Room
         </Button>

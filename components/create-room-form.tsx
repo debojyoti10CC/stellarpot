@@ -49,8 +49,8 @@ export function CreateRoomForm() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-lg mx-auto p-8 rounded-xl border border-white/[0.06] bg-white/[0.01]">
-        <p className="text-center text-sm text-muted-foreground/60">Connect your wallet to create a room.</p>
+      <div className="max-w-lg mx-auto p-8 rounded-xl border border-border bg-card shadow-sm">
+        <p className="text-center text-sm text-muted-foreground/80">Connect your wallet to create a room.</p>
       </div>
     )
   }
@@ -58,14 +58,14 @@ export function CreateRoomForm() {
   return (
     <div className="max-w-lg mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold">Create Room</h1>
-        <p className="text-sm text-muted-foreground/50 mt-1">Set up a new prediction market on Soroban</p>
+        <h1 className="text-xl font-semibold text-foreground">Create Room</h1>
+        <p className="text-sm text-muted-foreground/80 mt-1">Set up a new prediction market on Soroban</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-5 space-y-5">
+        <div className="rounded-xl border border-border bg-card shadow-sm p-5 space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="prediction" className="text-xs text-muted-foreground/60">Question</Label>
+            <Label htmlFor="prediction" className="text-xs text-muted-foreground/80">Question</Label>
             <Textarea
               id="prediction"
               placeholder="Will Bitcoin reach $100k by December 2026?"
@@ -73,7 +73,7 @@ export function CreateRoomForm() {
               onChange={(e) => setPrediction(e.target.value)}
               required
               rows={2}
-              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 resize-none text-sm"
+              className="bg-transparent border-border focus:border-primary/50 resize-none text-sm"
             />
           </div>
 
@@ -89,7 +89,7 @@ export function CreateRoomForm() {
                       newOptions[index] = e.target.value
                       setOptions(newOptions)
                     }}
-                    className="flex-1 bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9"
+                    className="flex-1 bg-transparent border-border focus:border-primary/50 text-sm h-9"
                   />
                   {options.length > 2 && (
                     <button type="button" onClick={() => removeOption(index)} className="p-1.5 rounded-lg text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/5 transition-all">
@@ -106,9 +106,9 @@ export function CreateRoomForm() {
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }}
-                  className="flex-1 bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9"
+                  className="flex-1 bg-transparent border-border focus:border-primary/50 text-sm h-9"
                 />
-                <button type="button" onClick={addOption} className="p-1.5 rounded-lg border border-white/[0.06] text-muted-foreground/40 hover:text-foreground hover:border-white/[0.12] transition-all">
+                <button type="button" onClick={addOption} className="p-1.5 rounded-lg border border-border text-muted-foreground/80 hover:text-foreground hover:bg-slate-50 transition-all">
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -117,19 +117,19 @@ export function CreateRoomForm() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-2">
-            <Label htmlFor="stake" className="text-xs text-muted-foreground/60">Stake (XLM)</Label>
+          <div className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-2">
+            <Label htmlFor="stake" className="text-xs text-muted-foreground/80">Stake (XLM)</Label>
             <Input id="stake" type="number" min="1" step="1" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} required
-              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9 font-mono" />
+              className="bg-transparent border-border focus:border-primary/50 text-sm h-9 font-mono" />
           </div>
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-2">
-            <Label htmlFor="expiry" className="text-xs text-muted-foreground/60">Duration (days)</Label>
+          <div className="rounded-xl border border-border bg-card shadow-sm p-4 space-y-2">
+            <Label htmlFor="expiry" className="text-xs text-muted-foreground/80">Duration (days)</Label>
             <Input id="expiry" type="number" min="1" max="365" value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} required
-              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9 font-mono" />
+              className="bg-transparent border-border focus:border-primary/50 text-sm h-9 font-mono" />
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-11 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-black font-semibold text-sm" disabled={isCreating || !prediction.trim()}>
+        <Button type="submit" className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm" disabled={isCreating || !prediction.trim()}>
           {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Create Room
         </Button>

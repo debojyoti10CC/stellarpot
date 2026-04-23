@@ -19,56 +19,28 @@ const server = new StellarSdk.rpc.Server(SOROBAN_RPC_URL);
 
 // ─────────────────────────────────────────
 //  UNIQUE ROOM CODE GENERATION
-//  Generates a 6-character alphanumeric code
-//  that maps to on-chain room IDs
+//  Obfuscates the serial on-chain room ID
+//  to prevent casual URL guessing.
 // ─────────────────────────────────────────
 
-const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0/O/1/I to avoid confusion
+const OBFUSCATION_SALT = 8472619;
 
-export function generateRoomCode(): string {
-  let code = '';
-  const array = new Uint8Array(6);
-  crypto.getRandomValues(array);
-  for (let i = 0; i < 6; i++) {
-    code += ROOM_CODE_CHARS[array[i] % ROOM_CODE_CHARS.length];
-  }
-  return code;
-}
-
-// Local mapping: roomCode <-> on-chain roomId
-// In production this would be stored on-chain or in a decentralized registry
-const ROOM_CODE_STORAGE_KEY = 'stellarpot_room_codes';
-
-interface RoomCodeMap {
-  [code: string]: number; // code -> on-chain room ID
-}
-
-function getRoomCodeMap(): RoomCodeMap {
-  try {
-    const stored = localStorage.getItem(ROOM_CODE_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveRoomCode(code: string, roomId: number): void {
-  const map = getRoomCodeMap();
-  map[code] = roomId;
-  localStorage.setItem(ROOM_CODE_STORAGE_KEY, JSON.stringify(map));
+export function getRoomCodeFromId(roomId: number): string {
+  // Simple reversible obfuscation
+  const obfuscated = (roomId ^ OBFUSCATION_SALT) * 7;
+  return obfuscated.toString(36).toUpperCase();
 }
 
 export function getRoomIdFromCode(code: string): number | null {
-  const map = getRoomCodeMap();
-  return map[code.toUpperCase()] ?? null;
-}
-
-export function getRoomCodeFromId(roomId: number): string | null {
-  const map = getRoomCodeMap();
-  for (const [code, id] of Object.entries(map)) {
-    if (id === roomId) return code;
+  try {
+    const parsed = parseInt(code.toLowerCase(), 36);
+    if (isNaN(parsed)) return null;
+    const roomId = (parsed / 7) ^ OBFUSCATION_SALT;
+    if (roomId <= 0 || !Number.isInteger(roomId)) return null;
+    return roomId;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 // ─────────────────────────────────────────

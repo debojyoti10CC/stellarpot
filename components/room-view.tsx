@@ -28,6 +28,12 @@ import {
   ChevronDown,
   BarChart3,
   Clock,
+  Twitter,
+  Activity,
+  Timer,
+  TrendingUp as TrendingUpIcon,
+  Flame,
+  Sparkles,
 } from 'lucide-react'
 import {
   Dialog,
@@ -37,185 +43,138 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts'
 import { CONTRACT_ID } from '@/lib/soroban-client'
 
 interface RoomViewProps {
   roomCode: string
 }
 
-// ── Probability Bar (Polymarket-style) ──────────────────
+// ── Visual Data & Statistics ──────────────────────────────
 
-function ProbabilityBar({ options, bets, totalPool, winningOption, isResolved }: {
-  options: string[]
-  bets: { option_idx: number; amount: number }[]
-  totalPool: number
-  winningOption: number
-  isResolved: boolean
-}) {
-  const segments = options.map((opt, idx) => {
-    const optBets = bets.filter(b => b.option_idx === idx)
-    const pool = optBets.reduce((s, b) => s + b.amount, 0)
-    const pct = totalPool > 0 ? (pool / totalPool) * 100 : 100 / options.length
-    return { label: opt, pct: Math.round(pct), pool, count: optBets.length, idx }
+const CHART_COLORS = [
+  'var(--color-chart-1)', 
+  'var(--color-chart-2)', 
+  'var(--color-chart-3)', 
+  'var(--color-chart-4)', 
+  'var(--color-chart-5)'
+]
+
+function PoolDistribution({ options, bets, totalPool }: { options: string[], bets: any[], totalPool: number }) {
+  const data = options.map((opt, idx) => {
+    const pool = bets.filter(b => b.option_idx === idx).reduce((s, b) => s + b.amount, 0)
+    return { name: opt, value: pool, color: CHART_COLORS[idx % CHART_COLORS.length] }
   })
 
-  // Colors rotate through a curated palette
-  const colors = [
-    { bg: 'bg-indigo-500', text: 'text-indigo-400', bar: 'bg-indigo-500/20', ring: 'ring-indigo-500/30' },
-    { bg: 'bg-rose-500', text: 'text-rose-400', bar: 'bg-rose-500/20', ring: 'ring-rose-500/30' },
-    { bg: 'bg-blue-500', text: 'text-blue-400', bar: 'bg-blue-500/20', ring: 'ring-blue-500/30' },
-    { bg: 'bg-amber-500', text: 'text-amber-400', bar: 'bg-amber-500/20', ring: 'ring-amber-500/30' },
-    { bg: 'bg-violet-500', text: 'text-violet-400', bar: 'bg-violet-500/20', ring: 'ring-violet-500/30' },
-    { bg: 'bg-cyan-500', text: 'text-cyan-400', bar: 'bg-cyan-500/20', ring: 'ring-cyan-500/30' },
-  ]
+  // If no bets, show a flat distribution
+  const chartData = totalPool > 0 ? data.filter(d => d.value > 0) : data.map(d => ({...d, value: 1}))
 
   return (
-    <div className="space-y-1">
-      {/* Stacked bar */}
-      <div className="flex h-2.5 rounded-full overflow-hidden bg-white/[0.04]">
-        {segments.map((seg, i) => (
-          <div
-            key={i}
-            className={`${colors[i % colors.length].bg} transition-all duration-700 ease-out ${
-              isResolved && seg.idx === winningOption ? 'opacity-100' : isResolved ? 'opacity-30' : 'opacity-80'
-            }`}
-            style={{ width: `${Math.max(seg.pct, 2)}%` }}
-          />
-        ))}
+    <div className="flex flex-col md:flex-row items-center gap-6">
+      <div className="h-[200px] w-full md:w-1/2">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" stroke="none">
+              {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} opacity={totalPool > 0 ? 1 : 0.3} />)}
+            </Pie>
+            {totalPool > 0 && (
+              <RechartsTooltip 
+                formatter={(value: number) => [`${value.toFixed(1)} XLM`, 'Pool']}
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+              />
+            )}
+          </PieChart>
+        </ResponsiveContainer>
       </div>
-      {/* Legend */}
-      <div className="flex items-center gap-4 flex-wrap pt-1">
-        {segments.map((seg, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs">
-            <div className={`w-2 h-2 rounded-full ${colors[i % colors.length].bg} ${
-              isResolved && seg.idx === winningOption ? '' : isResolved ? 'opacity-30' : ''
-            }`} />
-            <span className={`${isResolved && seg.idx === winningOption ? colors[i % colors.length].text : 'text-muted-foreground'} font-medium`}>
-              {seg.label}
-            </span>
-            <span className={`font-mono ${isResolved && seg.idx === winningOption ? 'text-foreground font-semibold' : 'text-muted-foreground/60'}`}>
-              {seg.pct}%
-            </span>
-          </div>
-        ))}
+      <div className="w-full md:w-1/2 space-y-3">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Live Pool Distribution</h4>
+        {data.map((d, i) => {
+          const pct = totalPool > 0 ? Math.round((d.value / totalPool) * 100) : 0;
+          return (
+            <div key={i} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+                <span className="text-sm font-medium text-foreground/80">{d.name}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-sm font-semibold block">{pct}%</span>
+                <span className="text-[10px] text-muted-foreground font-mono">{d.value.toFixed(1)} XLM</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-// ── Polymarket-style Odds Chart ─────────────────────────
-
-// ── Polymarket-style Odds Chart ─────────────────────────
-
-function OddsChart({ options, bets, totalPool, roomId }: {
-  options: string[]
-  bets: { option_idx: number; amount: number }[]
-  totalPool: number
-  roomId: number
-}) {
-  const colors = ['#818cf8', '#fb7185', '#60a5fa', '#fbbf24', '#a78bfa', '#22d3ee']
-  const textColors = ['text-indigo-400', 'text-rose-400', 'text-blue-400', 'text-amber-400', 'text-violet-400', 'text-cyan-400']
-
-  const data = options.map((opt, idx) => {
-    const optBets = bets.filter(b => b.option_idx === idx)
-    const pool = optBets.reduce((s, b) => s + b.amount, 0)
-    const pct = totalPool > 0 ? (pool / totalPool) * 100 : (100 / options.length) // even split if no bets
-    return { label: opt, pct, pool, count: optBets.length }
+function VolumeTrends({ bets }: { bets: any[] }) {
+  let cumulative = 0
+  const data = [{ name: 'Start', volume: 0 }]
+  bets.forEach((b, i) => {
+    cumulative += b.amount
+    data.push({ name: `Bet ${i+1}`, volume: cumulative })
   })
-
-  // Build true history from chronologically ordered bets
-  const generateRealPaths = () => {
-    const history: number[][] = []
-    const currentPools = new Array(options.length).fill(0)
-    let currentTotal = 0
-    
-    // Helper to calculate and record percentages
-    const recordState = () => {
-       const pcts = currentTotal > 0 
-           ? currentPools.map(p => (p / currentTotal) * 100)
-           : currentPools.map(() => 100 / options.length)
-       history.push(pcts)
-    }
-    
-    // Step 0: Initial neutral state
-    recordState()
-    
-    // Replay each bet in order
-    for (const bet of bets) {
-       currentPools[bet.option_idx] += bet.amount
-       currentTotal += bet.amount
-       recordState()
-    }
-    
-    const numSteps = Math.max(history.length - 1, 1)
-    const stepX = 1000 / numSteps
-    
-    return options.map((_, optIdx) => {
-       const points = history.map((pcts, stepIdx) => {
-          const pct = pcts[optIdx]
-          const x = stepIdx * stepX
-          const y = Math.max(10, Math.min(290, 290 - (pct * 2.8)))
-          return [x, y]
-       })
-       
-       // Create a stepped line chart (horizontal then vertical)
-       let path = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`
-       for (let i = 1; i < points.length; i++) {
-           path += ` L ${points[i][0].toFixed(1)} ${points[i-1][1].toFixed(1)}` // move right
-           path += ` L ${points[i][0].toFixed(1)} ${points[i][1].toFixed(1)}` // jump to new prob
-       }
-       return path
-    })
-  }
-
-  const actualPaths = generateRealPaths()
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Market Odds Over Time</span>
-        </div>
-        <span className="text-xs text-muted-foreground/50 font-mono">{totalPool > 0 ? `${totalPool.toFixed(1)} XLM total` : 'No bets yet'}</span>
+      <div className="flex items-center gap-2">
+        <TrendingUpIcon className="w-4 h-4 text-muted-foreground" />
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Staking Volume Trends</h4>
       </div>
+      <div className="h-[180px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorVol" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.04)" />
+            <XAxis dataKey="name" hide />
+            <YAxis tickFormatter={(val) => `${val} XLM`} style={{ fontSize: '10px', fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <RechartsTooltip 
+              contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}
+              labelStyle={{ color: '#64748b' }}
+            />
+            <Area type="monotone" dataKey="volume" stroke="var(--color-chart-1)" strokeWidth={3} fillOpacity={1} fill="url(#colorVol)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
 
-      <div className="relative w-full h-[220px] select-none border border-white/[0.04] rounded-xl bg-black/20 overflow-hidden">
-        <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none">
-          {/* Grid lines */}
-          <line x1="0" y1="75" x2="1000" y2="75" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          <line x1="0" y1="225" x2="1000" y2="225" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-          
-          {data.map((d, i) => {
-             const endY = 290 - (d.pct * 2.8);
-             return (
-               <g key={i}>
-                 <path d={actualPaths[i]} fill="none" stroke={colors[i % colors.length]} strokeWidth="3" strokeLinejoin="round" />
-                 <circle cx="1000" cy={endY} r="5" fill={colors[i % colors.length]} />
-               </g>
-             )
-          })}
-        </svg>
-        
-        {/* Y-axis labels */}
-        <div className="absolute top-[65px] left-2 text-[10px] text-muted-foreground/40 font-mono">75%</div>
-        <div className="absolute top-[140px] left-2 text-[10px] text-muted-foreground/40 font-mono">50%</div>
-        <div className="absolute top-[215px] left-2 text-[10px] text-muted-foreground/40 font-mono">25%</div>
+function ActivityFeed({ bets, options }: { bets: any[], options: string[] }) {
+  const reversed = [...bets].reverse()
+  return (
+    <div className="space-y-4 h-full flex flex-col">
+      <div className="flex items-center gap-2">
+        <Activity className="w-4 h-4 text-muted-foreground" />
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent Activity</h4>
       </div>
-      
-      {/* Legend */}
-      <div className="grid grid-cols-2 gap-3">
-        {data.map((d, i) => (
-           <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-              <div className="flex items-center gap-2">
-                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-                 <span className="text-xs text-foreground/80 truncate max-w-[100px]">{d.label}</span>
+      <ScrollArea className="flex-1 w-full pr-4">
+        {reversed.length === 0 ? (
+          <p className="text-sm text-muted-foreground/50 text-center py-8">No bets placed yet.</p>
+        ) : (
+          <div className="space-y-5">
+            {reversed.map((bet, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-slate-100 border border-border flex items-center justify-center shrink-0 shadow-sm">
+                  <span className="text-[10px] font-mono font-bold text-foreground/60">{bet.bettor.slice(0,2)}</span>
+                </div>
+                <div className="pt-0.5">
+                  <p className="text-[13px] leading-tight text-foreground/80">
+                    <span className="font-mono font-bold text-foreground">{bet.bettor.slice(0,4)}…{bet.bettor.slice(-4)}</span> staked <strong className="text-foreground">{bet.amount} XLM</strong> on <strong style={{ color: 'var(--color-chart-1)' }}>{options[bet.option_idx]}</strong>
+                  </p>
+                </div>
               </div>
-              <span className={`text-xs font-mono font-medium ${textColors[i % textColors.length]}`}>{d.pct.toFixed(0)}%</span>
-           </div>
-        ))}
-      </div>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
     </div>
   )
 }
@@ -236,8 +195,14 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const [payouts, setPayouts] = useState<PayoutInfo[]>([])
   const [resolvedRoomId, setResolvedRoomId] = useState<number | null>(null)
   const [showParticipants, setShowParticipants] = useState(false)
+  const [currentLedger, setCurrentLedger] = useState<number | null>(null)
 
   useEffect(() => {
+    fetch('https://horizon-testnet.stellar.org')
+      .then(r => r.json())
+      .then(d => setCurrentLedger(d.core_latest_ledger))
+      .catch(() => {})
+
     const fetchRoom = async () => {
       let foundRoom: OnChainRoom | null = null
       const roomId = getRoomIdFromCode(roomCode)
@@ -260,7 +225,10 @@ export function RoomView({ roomCode }: RoomViewProps) {
       setLoading(false)
     }
     fetchRoom()
-    const interval = setInterval(fetchRoom, 10000)
+    const interval = setInterval(() => {
+      fetchRoom()
+      fetch('https://horizon-testnet.stellar.org').then(r => r.json()).then(d => setCurrentLedger(d.core_latest_ledger)).catch(() => {})
+    }, 10000)
     return () => clearInterval(interval)
   }, [roomCode])
 
@@ -312,7 +280,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-12">
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-12">
           <div className="text-center">
             <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-primary" />
             <p className="text-sm text-muted-foreground">Reading contract state…</p>
@@ -325,7 +293,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   if (!room) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-12">
+        <div className="rounded-2xl border border-border bg-card shadow-sm p-12">
           <div className="text-center">
             <AlertCircle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
             <h2 className="text-base font-semibold mb-1">Room not found</h2>
@@ -355,15 +323,27 @@ export function RoomView({ roomCode }: RoomViewProps) {
 
   const sc = statusConfig[room.status]
 
+  // Derived metrics
+  const isHighVolume = room.total_pool >= 50
+  const isNew = room.bets.length === 0
+  const ledgersRemaining = currentLedger && room.status === 'Open' ? Math.max(0, room.expiry_ledger - currentLedger) : 0
+  const isEndingSoon = room.status === 'Open' && ledgersRemaining > 0 && ledgersRemaining < 17280 // ~24 hrs
+  
+  const estimatedSecondsLeft = ledgersRemaining * 5
+  const hoursLeft = Math.floor(estimatedSecondsLeft / 3600)
+  const minutesLeft = Math.floor((estimatedSecondsLeft % 3600) / 60)
+  
+  const tweetText = encodeURIComponent(`I just placed a prediction on "${room.description}" in StellarPot!\n\nJoin the market: ${typeof window !== 'undefined' ? window.location.origin : ''}/room/${displayCode}\n\n#Stellar #PredictionMarket`)
+
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto space-y-6">
 
       {/* ── Header Card ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.04] bg-white/[0.005]">
-          <div className="flex items-center gap-3">
+        {/* Top bar with Risk Metrics & Status */}
+        <div className="flex flex-wrap items-center justify-between px-5 py-4 border-b border-border bg-slate-50/50 gap-4">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className={`${sc.class} gap-1.5 text-xs font-medium px-2 py-0.5`}>
               {room.status === 'Open' && (
                 <span className="relative flex h-1.5 w-1.5">
@@ -373,12 +353,37 @@ export function RoomView({ roomCode }: RoomViewProps) {
               )}
               {sc.label}
             </Badge>
-            {isCreator && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-white/[0.1]">Creator</Badge>}
+            {isCreator && <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-border">Creator</Badge>}
+            
+            {/* Risk Metrics */}
+            {isHighVolume && (
+              <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20 px-1.5 py-0 gap-1">
+                <Flame className="w-3 h-3" /> Trending
+              </Badge>
+            )}
+            {isNew && room.status === 'Open' && (
+              <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-500 border-blue-500/20 px-1.5 py-0 gap-1">
+                <Sparkles className="w-3 h-3" /> New
+              </Badge>
+            )}
+            {isEndingSoon && (
+              <Badge variant="outline" className="text-[10px] bg-rose-500/10 text-rose-500 border-rose-500/20 px-1.5 py-0 gap-1 animate-pulse">
+                <Timer className="w-3 h-3" /> Ending Soon
+              </Badge>
+            )}
           </div>
           
-          {/* Room Code Prominent Display */}
-          <div className="flex items-center gap-2">
-             <span className="text-xs font-medium text-muted-foreground/60 hidden sm:inline-block">Room Code:</span>
+          {/* Room Code & Social Share */}
+          <div className="flex items-center gap-2 ml-auto">
+             <a 
+               href={`https://twitter.com/intent/tweet?text=${tweetText}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-all active:scale-95"
+               title="Share on Twitter"
+             >
+               <Twitter className="w-4 h-4" />
+             </a>
              <button 
                onClick={copyRoomLink}
                className="group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40 transition-all active:scale-95"
@@ -390,35 +395,45 @@ export function RoomView({ roomCode }: RoomViewProps) {
           </div>
         </div>
 
-        {/* Question */}
-        <div className="px-5 pt-5 pb-4">
-          <h1 className="text-lg font-semibold leading-snug text-foreground/95">{room.description}</h1>
-          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground/60">
-            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{room.bets.length} participant{room.bets.length !== 1 ? 's' : ''}</span>
-            <span className="flex items-center gap-1"><Coins className="w-3.5 h-3.5" />{room.total_pool.toFixed(1)} XLM pool</span>
-            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{room.stake_amount} XLM entry</span>
+        {/* Question & Meta info */}
+        <div className="px-5 pt-5 pb-5">
+          <h1 className="text-xl sm:text-2xl font-semibold leading-snug text-foreground/95 mb-4">{room.description}</h1>
+          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground/60">
+            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" />{room.bets.length} participant{room.bets.length !== 1 ? 's' : ''}</span>
+            <span className="flex items-center gap-1.5"><Coins className="w-4 h-4" />{room.total_pool.toFixed(1)} XLM pool</span>
+            <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" />{room.stake_amount} XLM entry</span>
+            {room.status === 'Open' && currentLedger && (
+              <span className="flex items-center gap-1.5 text-indigo-500/80">
+                <Timer className="w-4 h-4" /> 
+                {hoursLeft > 0 ? `${hoursLeft}h ${minutesLeft}m` : minutesLeft > 0 ? `${minutesLeft}m` : '<1m'} remaining
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Dashboard Layout ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column (Stats & Visuals) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+            <PoolDistribution options={room.options} bets={room.bets} totalPool={room.total_pool} />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+              <VolumeTrends bets={room.bets} />
+            </div>
+            <div className="rounded-2xl border border-border bg-card shadow-sm p-6 h-[270px]">
+              <ActivityFeed bets={room.bets} options={room.options} />
+            </div>
           </div>
         </div>
 
-        {/* Probability bar */}
-        <div className="px-5 pb-5">
-          <ProbabilityBar 
-            options={room.options} 
-            bets={room.bets} 
-            totalPool={room.total_pool} 
-            winningOption={room.winning_option}
-            isResolved={room.status === 'Resolved'}
-          />
-        </div>
-      </div>
-
-      {/* ── Odds Chart ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-        <OddsChart options={room.options} bets={room.bets} totalPool={room.total_pool} roomId={resolvedRoomId || 0} />
-      </div>
-
-      {/* ── Bet / Resolution Section ── */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+        {/* Right Column (Betting Panel) */}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden sticky top-24">
         
         {/* Betting options (only when room is open) */}
         {room.status === 'Open' && (
@@ -442,13 +457,13 @@ export function RoomView({ roomCode }: RoomViewProps) {
                       flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200
                       ${isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
                         : isUserBet ? 'border-primary/40 bg-primary/[0.03]'
-                        : 'border-white/[0.06] hover:border-white/[0.12] bg-white/[0.01]'}
+                        : 'border-border hover:border-border/80 bg-card hover:bg-slate-50'}
                       ${canJoin ? 'cursor-pointer' : 'cursor-default'}
                     `}
                   >
                     <div className="flex items-center gap-2.5">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
-                        ${isSelected ? 'border-primary' : isUserBet ? 'border-primary/50' : 'border-white/[0.15]'}
+                        ${isSelected ? 'border-primary' : isUserBet ? 'border-primary/50' : 'border-border'}
                       `}>
                         {(isSelected || isUserBet) && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
@@ -526,7 +541,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
             {payouts.length > 0 && (
               <div className="space-y-2">
                 <span className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">Settlement</span>
-                <div className="divide-y divide-white/[0.04]">
+                <div className="divide-y divide-border">
                   {payouts.map((p, i) => (
                     <div key={i} className="flex items-center justify-between py-2.5 text-xs">
                       <div className="flex items-center gap-2">
@@ -563,7 +578,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
             {canResolve && (
               <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="flex-1 h-10 rounded-xl text-sm border-white/[0.08]">
+                  <Button variant="outline" className="flex-1 h-10 rounded-xl text-sm border-border">
                     <Trophy className="w-3.5 h-3.5 mr-2" />Resolve
                   </Button>
                 </DialogTrigger>
@@ -594,54 +609,23 @@ export function RoomView({ roomCode }: RoomViewProps) {
           </div>
         )}
       </div>
-
-      {/* ── Participants (collapsible) ── */}
-      {room.bets.length > 0 && room.status === 'Open' && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
-          <button 
-            onClick={() => setShowParticipants(!showParticipants)}
-            className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span className="font-medium">Participants ({room.bets.length})</span>
-            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showParticipants ? 'rotate-180' : ''}`} />
-          </button>
-          {showParticipants && (
-            <div className="px-5 pb-4 divide-y divide-white/[0.04]">
-              {room.bets.map((bet, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-white/[0.04] flex items-center justify-center text-[10px] font-mono text-muted-foreground/60">
-                      {bet.bettor.slice(0, 2)}
-                    </div>
-                    <span className="font-mono text-muted-foreground/60">{bet.bettor.slice(0, 4)}…{bet.bettor.slice(-4)}</span>
-                    {bet.bettor === user?.walletAddress && <Badge variant="secondary" className="text-[9px] px-1 py-0">You</Badge>}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-white/[0.06]">{room.options[bet.option_idx]}</Badge>
-                    <span className="font-mono text-muted-foreground/40">{bet.amount} XLM</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
+      </div>
+      </div>
       {/* ── Footer: on-chain verification ── */}
-      <div className="flex items-center justify-center gap-4 py-3 text-[11px] text-muted-foreground/30">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-6 text-[11px] text-muted-foreground/40">
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="w-3 h-3 text-indigo-500/50" />
-          <span className="font-mono">{CONTRACT_ID.slice(0, 6)}…{CONTRACT_ID.slice(-6)}</span>
+          <span className="font-mono">Contract: {CONTRACT_ID.slice(0, 8)}…{CONTRACT_ID.slice(-8)}</span>
         </div>
-        <span>·</span>
+        <span className="hidden sm:inline-block">·</span>
         <a
           href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 hover:text-muted-foreground/60 transition-colors"
+          className="flex items-center gap-1 hover:text-muted-foreground transition-colors"
         >
           <ExternalLink className="w-3 h-3" />
-          Stellar Explorer
+          View on Stellar Explorer
         </a>
       </div>
     </div>

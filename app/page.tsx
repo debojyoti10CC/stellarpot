@@ -10,19 +10,19 @@ function HomeContent() {
   const { isConnected } = useWallet()
   
   return (
-    <div className="min-h-screen flex flex-col bg-[#020202]">
+    <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-1">
         {isConnected ? <Dashboard /> : <LandingHero />}
       </main>
-      <footer className="border-t border-white/[0.04] py-6">
-        <div className="max-w-5xl mx-auto px-5 flex items-center justify-between text-[11px] text-muted-foreground/25">
+      <footer className="border-t border-border/80 py-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 text-[11px] text-muted-foreground">
           <span>StellarPot · Soroban Testnet</span>
           <a 
             href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono hover:text-muted-foreground/50 transition-colors"
+            className="font-mono transition-colors hover:text-foreground"
           >
             {CONTRACT_ID.slice(0, 8)}…{CONTRACT_ID.slice(-6)}
           </a>

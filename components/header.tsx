@@ -9,16 +9,22 @@ export function Header() {
   const { user, isConnected, isConnecting, connect, disconnect, balance } = useWallet()
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#020202]/80 border-b border-white/[0.06]">
-      <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 group">
-            <span className="font-bold text-[16px] text-foreground/90 tracking-tight">StellarPot</span>
+    <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl" style={{ borderBottom: '1px solid #eee' }}>
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="group flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+              <img src="/logo.png" alt="StellarPot Logo" className="w-full h-full object-cover" />
+            </span>
+            <div>
+              <span className="font-display block text-[15px] font-semibold tracking-tight text-foreground">StellarPot</span>
+              <span className="block text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Private betting for friends</span>
+            </div>
           </Link>
           {isConnected && (
-            <nav className="hidden sm:flex items-center gap-1">
-              <Link href="/create" className="px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">Create</Link>
-              <Link href="/join" className="px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">Join</Link>
+            <nav className="hidden items-center gap-2 sm:flex">
+              <Link href="/create" className="rounded-full px-4 py-2 text-[13px] text-muted-foreground transition-all hover:bg-accent hover:text-foreground">Create</Link>
+              <Link href="/join" className="rounded-full px-4 py-2 text-[13px] text-muted-foreground transition-all hover:bg-accent hover:text-foreground">Join</Link>
             </nav>
           )}
         </div>
@@ -26,19 +32,20 @@ export function Header() {
         {isConnected ? (
           <div className="flex items-center gap-2">
             {balance !== null && (
-              <div className="hidden sm:block px-3 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-indigo-400">
+              <div className="hidden rounded-full border border-border bg-card px-3 py-1.5 text-xs font-mono text-primary sm:flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {balance.toLocaleString(undefined, { maximumFractionDigits: 1 })} XLM
               </div>
             )}
-            <div className="px-3 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-muted-foreground">
+            <div className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-mono text-muted-foreground">
               {user!.walletAddress.slice(0, 4)}…{user!.walletAddress.slice(-4)}
             </div>
-            <button onClick={disconnect} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/5 transition-all">
+            <button onClick={disconnect} className="rounded-full p-2 text-muted-foreground transition-all hover:bg-red-50 hover:text-red-500">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         ) : (
-          <Button onClick={connect} disabled={isConnecting} size="sm" className="h-8 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-black text-xs font-semibold px-4">
+          <Button onClick={connect} disabled={isConnecting} size="sm" className="h-10 rounded-full bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-none transition-colors hover:bg-primary/92">
             {isConnecting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Wallet className="w-3.5 h-3.5 mr-1.5" />}
             Connect
           </Button>
