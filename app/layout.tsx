@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
 const inter = Inter({ 
@@ -8,15 +8,9 @@ const inter = Inter({
   display: 'swap',
 });
 
-const jetbrainsMono = JetBrains_Mono({ 
-  subsets: ["latin"],
-  variable: '--font-jetbrains',
-  display: 'swap',
-});
-
 export const metadata: Metadata = {
-  title: 'StellarPot — Trustless Prediction Markets on Stellar',
-  description: 'Create private, trust-minimized prediction markets with friends. Stake XLM, make predictions, and settle outcomes through Soroban smart contracts — fully on-chain.',
+  title: 'StellarPot — Prediction Markets on Stellar',
+  description: 'Create private prediction markets with friends. Stake XLM, predict outcomes, settle on-chain via Soroban.',
 }
 
 export default function RootLayout({
@@ -25,16 +19,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} bg-background`}>
-      <body className="font-sans antialiased min-h-screen bg-background text-foreground">
-        <div className="relative">
-          {/* Background ambient effects */}
-          <div className="fixed inset-0 bg-grid pointer-events-none opacity-40" />
-          <div className="fixed inset-0 bg-radial-glow pointer-events-none" />
-          <div className="relative z-10">
-            {children}
-          </div>
-        </div>
+    <html lang="en" className={`${inter.variable} dark`}>
+      <body className="font-sans min-h-screen bg-[#0a0a0b] text-foreground">
+        {children}
       </body>
     </html>
   )

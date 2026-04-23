@@ -6,51 +6,50 @@ import { getUserRooms } from '@/lib/soroban-client'
 import type { OnChainRoom } from '@/lib/soroban-client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Plus, Users, Coins, ShieldCheck, Loader2 } from 'lucide-react'
+import { Plus, Users, Coins, Loader2, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 function RoomCard({ room }: { room: OnChainRoom }) {
-  const statusColors = {
-    Open: 'bg-green-500/10 text-green-500 border-green-500/20',
-    Resolved: 'bg-primary/10 text-primary border-primary/20',
-    Cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
+  const statusConfig = {
+    Open: { label: 'Live', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    Resolved: { label: 'Resolved', class: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+    Cancelled: { label: 'Cancelled', class: 'bg-red-500/10 text-red-400 border-red-500/20' },
   }
-
+  const sc = statusConfig[room.status]
   const linkPath = room.code ? `/room/${room.code}` : `/room/${room.id}`
 
+  // Calculate top option
+  const topOption = room.options.reduce((best, opt, idx) => {
+    const pool = room.bets.filter(b => b.option_idx === idx).reduce((s, b) => s + b.amount, 0)
+    return pool > best.pool ? { label: opt, pool, pct: room.total_pool > 0 ? Math.round((pool / room.total_pool) * 100) : 0 } : best
+  }, { label: '', pool: 0, pct: 0 })
+
   return (
-    <Link href={linkPath}>
-      <Card className="hover:border-primary/30 transition-colors cursor-pointer">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className={statusColors[room.status]}>
-              {room.status}
-            </Badge>
-            <Badge variant="outline" className="font-mono text-xs tracking-wider">
-              {room.code || `#${room.id}`}
-            </Badge>
+    <Link href={linkPath} className="block group">
+      <div className="p-4 rounded-xl border border-white/[0.04] bg-white/[0.01] hover:border-white/[0.1] transition-all duration-200">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <h3 className="text-sm font-medium text-foreground/90 leading-snug line-clamp-2 group-hover:text-foreground transition-colors">{room.description}</h3>
+          <Badge variant="outline" className={`${sc.class} text-[10px] shrink-0`}>{sc.label}</Badge>
+        </div>
+        
+        {topOption.label && room.total_pool > 0 && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-muted-foreground/60 truncate">{topOption.label}</span>
+              <span className="font-mono text-emerald-400">{topOption.pct}%</span>
+            </div>
+            <div className="h-1 rounded-full bg-white/[0.04] overflow-hidden">
+              <div className="h-full bg-emerald-500/40 rounded-full" style={{ width: `${topOption.pct}%` }} />
+            </div>
           </div>
-          <CardTitle className="text-base line-clamp-2">{room.description}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              {room.bets.length}
-            </span>
-            <span className="flex items-center gap-1">
-              <Coins className="w-3.5 h-3.5" />
-              {room.total_pool.toFixed(1)} XLM
-            </span>
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
-              On-chain
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+        )}
+
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground/40">
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" />{room.bets.length}</span>
+          <span className="flex items-center gap-1"><Coins className="w-3 h-3" />{room.total_pool.toFixed(1)} XLM</span>
+          <span className="font-mono ml-auto">{room.code || `#${room.id}`}</span>
+        </div>
+      </div>
     </Link>
   )
 }
@@ -71,39 +70,32 @@ export function Dashboard() {
     fetchRooms()
   }, [user])
 
-  if (!isConnected) {
-    return null
-  }
+  if (!isConnected) return null
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-        <p className="text-muted-foreground">Reading rooms from Soroban contract...</p>
+      <div className="max-w-3xl mx-auto px-5 py-20 text-center">
+        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-3 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground/40">Loading rooms…</p>
       </div>
     )
   }
 
   const activeRooms = rooms.filter(r => r.status === 'Open')
-  const resolvedRooms = rooms.filter(r => r.status === 'Resolved' || r.status === 'Cancelled')
+  const pastRooms = rooms.filter(r => r.status !== 'Open')
 
   if (rooms.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="text-center py-12 border border-dashed border-border rounded-xl">
-          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-lg font-semibold mb-2">No rooms yet</h2>
-          <p className="text-muted-foreground mb-6">
-            Create a prediction room or join one by room ID
-          </p>
-          <div className="flex items-center justify-center gap-4">
-            <Button asChild>
-              <Link href="/create">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Room
-              </Link>
+      <div className="max-w-3xl mx-auto px-5 py-20">
+        <div className="text-center py-16 rounded-xl border border-dashed border-white/[0.06]">
+          <div className="text-3xl mb-3">🎯</div>
+          <h2 className="text-base font-semibold mb-1">No rooms yet</h2>
+          <p className="text-sm text-muted-foreground/50 mb-6">Create a prediction or join one with a room code</p>
+          <div className="flex items-center justify-center gap-3">
+            <Button asChild size="sm" className="h-9 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-4">
+              <Link href="/create"><Plus className="w-3.5 h-3.5 mr-1.5" />Create</Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button asChild variant="outline" size="sm" className="h-9 rounded-lg border-white/[0.08] text-xs px-4">
               <Link href="/join">Join Room</Link>
             </Button>
           </div>
@@ -113,60 +105,36 @@ export function Dashboard() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-5 py-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Your Rooms</h2>
+        <h2 className="text-lg font-semibold">Your Rooms</h2>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/join">Join Room</Link>
+          <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-white/[0.06] text-xs px-3">
+            <Link href="/join">Join</Link>
           </Button>
-          <Button size="sm" asChild>
-            <Link href="/create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create
-            </Link>
+          <Button asChild size="sm" className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-3">
+            <Link href="/create"><Plus className="w-3.5 h-3.5 mr-1" />Create</Link>
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="active">
-            Active ({activeRooms.length})
-          </TabsTrigger>
-          <TabsTrigger value="resolved">
-            Resolved ({resolvedRooms.length})
-          </TabsTrigger>
-        </TabsList>
+      {activeRooms.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-xs font-medium text-muted-foreground/40 uppercase tracking-wider mb-3">Active ({activeRooms.length})</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {activeRooms.map(room => <RoomCard key={room.id} room={room} />)}
+          </div>
+        </div>
+      )}
 
-        <TabsContent value="active">
-          {activeRooms.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {activeRooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 border border-dashed border-border rounded-xl">
-              <p className="text-muted-foreground">No active rooms</p>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="resolved">
-          {resolvedRooms.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {resolvedRooms.map((room) => (
-                <RoomCard key={room.id} room={room} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 border border-dashed border-border rounded-xl">
-              <p className="text-muted-foreground">No resolved rooms yet</p>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {pastRooms.length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium text-muted-foreground/40 uppercase tracking-wider mb-3">Past ({pastRooms.length})</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {pastRooms.map(room => <RoomCard key={room.id} room={room} />)}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

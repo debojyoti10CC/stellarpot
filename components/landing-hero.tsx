@@ -2,140 +2,155 @@
 
 import { useWallet } from '@/lib/wallet-context'
 import { Button } from '@/components/ui/button'
-import { Wallet, Users, Shield, Zap, ArrowRight, Loader2, Code2, Lock, TrendingUp } from 'lucide-react'
+import { Wallet, ArrowRight, Loader2, Activity, ShieldCheck, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
 export function LandingHero() {
   const { isConnected, isConnecting, connect } = useWallet()
 
-  const features = [
-    {
-      icon: Lock,
-      title: 'Trustless Escrow',
-      description: 'Funds locked in a Soroban smart contract. No human holds the keys.',
-      gradient: 'from-primary/20 to-primary/5',
-      iconColor: 'text-primary',
-    },
-    {
-      icon: Shield,
-      title: 'On-Chain Verified',
-      description: 'Every bet, payout, and resolution is verifiable on the Stellar ledger.',
-      gradient: 'from-emerald-500/20 to-emerald-500/5',
-      iconColor: 'text-emerald-400',
-    },
-    {
-      icon: Zap,
-      title: 'Instant Settlement',
-      description: 'Winners are paid automatically by the contract. ~5 second finality.',
-      gradient: 'from-accent/20 to-accent/5',
-      iconColor: 'text-accent',
-    },
-  ]
-
-  const stats = [
-    { value: 'Soroban', label: 'Smart Contract' },
-    { value: '~5s', label: 'Finality' },
-    { value: '0%', label: 'Platform Fee' },
-  ]
-
   return (
-    <div className="relative flex flex-col items-center px-4 sm:px-6 pt-16 pb-24 md:pt-28 md:pb-32 overflow-hidden">
-      {/* Ambient background orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/[0.04] rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-20 right-1/4 w-[400px] h-[400px] bg-accent/[0.03] rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative flex flex-col items-center px-5 pt-28 pb-0 w-full overflow-hidden">
+      {/* Background Ambient Effects */}
+      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 right-[-10%] w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
 
-      {/* Hero content */}
-      <div className="relative text-center max-w-4xl mx-auto">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2.5 bg-white/[0.04] border border-white/[0.06] px-4 py-2 rounded-full text-sm font-medium mb-8 animate-fade-in backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
-          </span>
-          <span className="text-foreground/70">Deployed on Stellar Testnet</span>
-          <Code2 className="w-3.5 h-3.5 text-muted-foreground" />
-        </div>
+      {/* Badge */}
+      <div 
+        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-foreground/80 mb-8 backdrop-blur-sm shadow-sm animate-fade-in relative overflow-hidden group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+        </span>
+        <span className="font-medium tracking-wide">Live on Soroban Testnet</span>
+      </div>
 
-        {/* Heading */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight mb-6 animate-slide-up leading-[1.1]">
-          <span className="block">Bet with friends,</span>
-          <span className="text-gradient-hero">not trust.</span>
-        </h1>
+      {/* Headline */}
+      <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-center leading-[1.08] mb-6 animate-slide-up relative">
+        Prediction markets,<br />
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-white/50">
+          fully on-chain.
+        </span>
+      </h1>
 
-        {/* Subheading */}
-        <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto text-pretty animate-slide-up stagger-1 leading-relaxed opacity-0">
-          Create private prediction markets powered by Soroban smart contracts. 
-          Stake XLM, predict outcomes, and let the contract handle the rest.
-        </p>
+      <p 
+        className="text-lg md:text-xl text-muted-foreground text-center max-w-2xl mb-12 leading-relaxed animate-slide-up opacity-0"
+        style={{ animationDelay: '100ms' }}
+      >
+        Create private betting rooms with friends. Stake XLM, pick outcomes, and let the Soroban smart contract handle trustless settlement.
+      </p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up stagger-2 opacity-0">
-          {isConnected ? (
-            <>
-              <Button size="lg" asChild 
-                className="btn-premium rounded-full px-8 h-12 text-base bg-gradient-to-r from-primary to-primary/80 shadow-xl shadow-primary/25 hover:shadow-primary/40"
-              >
-                <Link href="/create">
-                  Create Room
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild 
-                className="rounded-full px-8 h-12 text-base border-white/10 hover:bg-white/[0.04] hover:border-white/15 transition-all duration-300"
-              >
-                <Link href="/join">Join Room</Link>
-              </Button>
-            </>
-          ) : (
-            <Button 
-              size="lg" 
-              onClick={connect} 
-              disabled={isConnecting} 
-              className="btn-premium rounded-full px-8 h-12 text-base bg-gradient-to-r from-primary to-primary/80 shadow-xl shadow-primary/25 hover:shadow-primary/40"
-            >
-              {isConnecting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Wallet className="w-4 h-4 mr-2" />
-              )}
-              Connect Wallet to Start
+      {/* CTA */}
+      <div 
+        className="flex flex-col sm:flex-row items-center gap-4 animate-slide-up opacity-0 relative z-10"
+        style={{ animationDelay: '200ms' }}
+      >
+        {isConnected ? (
+          <>
+            <Button asChild size="lg" className="h-12 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold text-base transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.2)]">
+              <Link href="/create">
+                Create Room
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
             </Button>
-          )}
-        </div>
-
-        {!isConnected && (
-          <p className="mt-5 text-sm text-muted-foreground/60 animate-slide-up stagger-3 opacity-0">
-            Requires Freighter wallet extension
-          </p>
+            <Button asChild variant="outline" size="lg" className="h-12 px-8 rounded-xl border-white/10 bg-white/5 hover:bg-white/10 text-foreground text-base transition-all">
+              <Link href="/join">Join Room</Link>
+            </Button>
+          </>
+        ) : (
+          <Button 
+            onClick={connect} 
+            disabled={isConnecting} 
+            size="lg" 
+            className="h-12 px-8 rounded-xl bg-foreground text-background hover:bg-foreground/90 font-semibold text-base transition-all hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(255,255,255,0.2)]"
+          >
+            {isConnecting ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Wallet className="w-5 h-5 mr-2" />}
+            Connect Wallet
+          </Button>
         )}
       </div>
 
-      {/* Stats bar */}
-      <div className="relative mt-16 w-full max-w-2xl mx-auto animate-slide-up stagger-3 opacity-0">
-        <div className="glass rounded-2xl px-8 py-5 flex items-center justify-around">
-          {stats.map((stat, i) => (
-            <div key={i} className="text-center">
-              <div className="text-lg font-bold text-gradient">{stat.value}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {!isConnected && (
+        <p className="mt-5 text-sm text-muted-foreground/60 animate-slide-up opacity-0" style={{ animationDelay: '300ms' }}>
+          Requires Freighter wallet extension
+        </p>
+      )}
 
-      {/* Feature Cards */}
-      <div className="grid md:grid-cols-3 gap-5 mt-16 max-w-4xl w-full">
-        {features.map((feature, i) => (
-          <div
-            key={feature.title}
-            className={`card-hover glass rounded-2xl p-6 animate-slide-up opacity-0 stagger-${i + 2}`}
-          >
-            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4`}>
-              <feature.icon className={`w-5 h-5 ${feature.iconColor}`} />
+      {/* Feature Grids */}
+      <div 
+        className="grid md:grid-cols-3 gap-6 mt-28 w-full max-w-5xl px-4 animate-slide-up opacity-0"
+        style={{ animationDelay: '400ms' }}
+      >
+        {[
+          { icon: ShieldCheck, title: 'Trustless Escrow', desc: 'Funds locked in a smart contract. No human holds the keys.', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
+          { icon: Activity, title: 'On-Chain Verified', desc: 'Every bet and payout is instantly verifiable on the Stellar ledger.', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
+          { icon: RefreshCw, title: 'Instant Settlement', desc: 'Winners are paid automatically by the contract. ~5s finality.', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
+        ].map((f, i) => (
+          <div key={i} className="relative group p-6 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.07] transition-colors overflow-hidden">
+            <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] ${f.bg} rounded-full -mr-10 -mt-10 opacity-50 group-hover:opacity-100 transition-opacity`} />
+            <div className={`w-12 h-12 rounded-xl ${f.bg} border ${f.border} flex items-center justify-center mb-4 relative z-10`}>
+              <f.icon className={`w-6 h-6 ${f.color}`} />
             </div>
-            <h3 className="font-semibold text-foreground/90 mb-1.5">{feature.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2 relative z-10">{f.title}</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed relative z-10">{f.desc}</p>
           </div>
         ))}
+      </div>
+      
+      {/* Visual Mockup representation below features */}
+      <div 
+        className="mt-28 w-full max-w-4xl relative animate-slide-up opacity-0"
+        style={{ animationDelay: '500ms' }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-transparent to-transparent z-20 pointer-events-none top-1/2" />
+        <div className="relative rounded-t-2xl border border-white/10 border-b-0 bg-[#121214] shadow-2xl p-6 md:p-8 overflow-hidden z-10 isolate">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+            <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">
+                <div>
+                     <h4 className="text-xl font-semibold mb-1.5 text-foreground/90">Will Bitcoin hit $100k by 2026?</h4>
+                     <div className="flex gap-4 text-sm text-muted-foreground font-mono mt-2">
+                        <span>👥 42 bets</span>
+                        <span>💰 2,450 XLM pool</span>
+                     </div>
+                </div>
+                <div className="hidden sm:block">
+                   <div className="px-3 py-1 rounded bg-emerald-500/10 text-emerald-400 font-mono text-xs border border-emerald-500/20">LIVE</div>
+                </div>
+            </div>
+            
+            <div className="space-y-5">
+               <div>
+                  <div className="flex justify-between text-sm mb-2 font-medium">
+                      <span className="text-foreground/80 flex items-center gap-2">Yes <span className="text-xs text-muted-foreground font-normal">31 bets</span></span>
+                      <span className="text-emerald-400 font-mono">68%</span>
+                  </div>
+                  <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full bg-emerald-500 relative">
+                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20" />
+                      </div>
+                  </div>
+               </div>
+               <div>
+                  <div className="flex justify-between text-sm mb-2 font-medium">
+                      <span className="text-foreground/80 flex items-center gap-2">No <span className="text-xs text-muted-foreground font-normal">11 bets</span></span>
+                      <span className="text-amber-400 font-mono">32%</span>
+                  </div>
+                  <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
+                      <div className="h-full bg-amber-500 w-[32%] relative">
+                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20" />
+                      </div>
+                  </div>
+               </div>
+            </div>
+            
+            <div className="mt-8 flex gap-3 pb-8">
+               <div className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center pointer-events-none opacity-50">
+                  <span className="text-muted-foreground font-medium text-sm">Place Bet</span>
+               </div>
+            </div>
+        </div>
       </div>
     </div>
   )

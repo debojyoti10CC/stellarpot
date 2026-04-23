@@ -9,16 +9,12 @@ import Link from 'next/link'
 export default function CreatePage() {
   return (
     <WalletProvider>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-[#0a0a0b]">
         <Header />
-        <main className="flex-1 py-8 px-4">
-          <div className="max-w-lg mx-auto mb-6">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to home
+        <main className="flex-1 py-8 px-5">
+          <div className="max-w-lg mx-auto mb-5">
+            <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors">
+              <ArrowLeft className="w-3 h-3" />Back
             </Link>
           </div>
           <CreateRoomForm />

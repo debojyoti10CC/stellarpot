@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWallet } from '@/lib/wallet-context'
-import { getRoomByCode, getRoom, getRoomIdFromCode } from '@/lib/soroban-client'
+import { getRoomByCode, getRoom } from '@/lib/soroban-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Loader2, Search } from 'lucide-react'
 
@@ -21,34 +20,23 @@ export function JoinRoomForm() {
     e.preventDefault()
     setError('')
     setIsSearching(true)
-
     try {
       const code = roomCode.trim().toUpperCase()
-      if (!code) {
-        setError('Please enter a room code.')
-        return
-      }
+      if (!code) { setError('Enter a room code.'); return }
 
-      // Try as room code first
       let room = await getRoomByCode(code)
-      
-      // Fallback: try as numeric ID
       if (!room) {
         const numericId = parseInt(code, 10)
-        if (!isNaN(numericId) && numericId > 0) {
-          room = await getRoom(numericId)
-        }
+        if (!isNaN(numericId) && numericId > 0) room = await getRoom(numericId)
       }
 
       if (room) {
-        // Navigate using the code (or numeric ID as fallback)
-        const shareCode = room.code || code
-        router.push(`/room/${shareCode}`)
+        router.push(`/room/${room.code || code}`)
       } else {
         setError('Room not found. Check the code and try again.')
       }
     } catch {
-      setError('Failed to query contract. Please try again.')
+      setError('Failed to query contract.')
     } finally {
       setIsSearching(false)
     }
@@ -56,61 +44,40 @@ export function JoinRoomForm() {
 
   if (!isConnected) {
     return (
-      <Card className="max-w-md mx-auto">
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            Please connect your wallet to join a room.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="max-w-sm mx-auto p-8 rounded-xl border border-white/[0.06] bg-white/[0.01]">
+        <p className="text-center text-sm text-muted-foreground/60">Connect your wallet to join a room.</p>
+      </div>
     )
   }
 
   return (
-    <Card className="max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Join Prediction Room</CardTitle>
-        <CardDescription>
-          Enter the room code shared by the creator to join their prediction market
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="roomCode">Room Code</Label>
-            <Input
-              id="roomCode"
-              type="text"
-              placeholder="e.g. A3K7RP"
-              value={roomCode}
-              onChange={(e) => {
-                setRoomCode(e.target.value.toUpperCase())
-                setError('')
-              }}
-              className="font-mono text-center text-lg tracking-widest uppercase"
-              maxLength={10}
-              required
-            />
-          </div>
+    <div className="max-w-sm mx-auto">
+      <div className="mb-6">
+        <h1 className="text-xl font-semibold">Join Room</h1>
+        <p className="text-sm text-muted-foreground/50 mt-1">Enter a code shared by the room creator</p>
+      </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-5 space-y-3">
+          <Label htmlFor="roomCode" className="text-xs text-muted-foreground/60">Room Code</Label>
+          <Input
+            id="roomCode"
+            type="text"
+            placeholder="e.g. A3K7RP"
+            value={roomCode}
+            onChange={(e) => { setRoomCode(e.target.value.toUpperCase()); setError('') }}
+            className="bg-transparent border-white/[0.06] focus:border-emerald-500/30 font-mono text-center text-lg tracking-[0.3em] uppercase h-12"
+            maxLength={10}
+            required
+          />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSearching || !roomCode}
-          >
-            {isSearching ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4 mr-2" />
-            )}
-            Find Room On-Chain
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        <Button type="submit" className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm" disabled={isSearching || !roomCode}>
+          {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
+          Find Room
+        </Button>
+      </form>
+    </div>
   )
 }

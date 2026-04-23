@@ -2,72 +2,46 @@
 
 import { useWallet } from '@/lib/wallet-context'
 import { Button } from '@/components/ui/button'
-import { Wallet, LogOut, Loader2, Sparkles } from 'lucide-react'
+import { Wallet, LogOut, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 
 export function Header() {
   const { user, isConnected, isConnecting, connect, disconnect, balance } = useWallet()
 
-  const truncateAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
-
   return (
-    <header className="glass-strong sticky top-0 z-50 border-b border-white/[0.04]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5 group">
-          <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow duration-300">
-            <Sparkles className="w-4.5 h-4.5 text-primary-foreground" />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
-          </div>
-          <span className="font-bold text-lg tracking-tight">
-            Stellar<span className="text-gradient">Pot</span>
-          </span>
-        </a>
+    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0b]/80 border-b border-white/[0.06]">
+      <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center text-[11px] font-black text-black tracking-tight">SP</div>
+            <span className="font-semibold text-[15px] text-foreground/90">StellarPot</span>
+          </Link>
+          {isConnected && (
+            <nav className="hidden sm:flex items-center gap-1">
+              <Link href="/create" className="px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">Create</Link>
+              <Link href="/join" className="px-3 py-1.5 rounded-lg text-[13px] text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-all">Join</Link>
+            </nav>
+          )}
+        </div>
 
-        {/* Wallet Section */}
         {isConnected ? (
-          <div className="flex items-center gap-3">
-            {/* Balance pill */}
+          <div className="flex items-center gap-2">
             {balance !== null && (
-              <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/8 border border-accent/15">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent animate-glow-pulse" />
-                <span className="text-sm font-mono font-medium text-accent">
-                  {balance.toLocaleString(undefined, { maximumFractionDigits: 2 })} XLM
-                </span>
+              <div className="hidden sm:block px-3 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-emerald-400">
+                {balance.toLocaleString(undefined, { maximumFractionDigits: 1 })} XLM
               </div>
             )}
-
-            {/* Address pill */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.06] hover:border-white/[0.1] transition-colors">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
-              <span className="text-sm font-mono text-foreground/80">
-                {truncateAddress(user!.walletAddress)}
-              </span>
+            <div className="px-3 py-1 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs font-mono text-muted-foreground">
+              {user!.walletAddress.slice(0, 4)}…{user!.walletAddress.slice(-4)}
             </div>
-
-            {/* Disconnect */}
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={disconnect}
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full w-8 h-8 transition-all duration-200"
-            >
+            <button onClick={disconnect} className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/5 transition-all">
               <LogOut className="w-3.5 h-3.5" />
-            </Button>
+            </button>
           </div>
         ) : (
-          <Button 
-            onClick={connect} 
-            disabled={isConnecting}
-            className="btn-premium rounded-full px-5 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
-          >
-            {isConnecting ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Wallet className="w-4 h-4 mr-2" />
-            )}
-            Connect Wallet
+          <Button onClick={connect} disabled={isConnecting} size="sm" className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-4">
+            {isConnecting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Wallet className="w-3.5 h-3.5 mr-1.5" />}
+            Connect
           </Button>
         )}
       </div>
