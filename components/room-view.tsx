@@ -105,6 +105,8 @@ function ProbabilityBar({ options, bets, totalPool, winningOption, isResolved }:
 
 // ── Polymarket-style Odds Chart ─────────────────────────
 
+// ── Polymarket-style Odds Chart ─────────────────────────
+
 function OddsChart({ options, bets, totalPool, roomId }: {
   options: string[]
   bets: { option_idx: number; amount: number }[]
@@ -121,42 +123,52 @@ function OddsChart({ options, bets, totalPool, roomId }: {
     return { label: opt, pct, pool, count: optBets.length }
   })
 
-  // Generate a deterministic random walk for each option that ends at the current pct
-  const generatePath = (endPct: number, seed: number) => {
-    let currentY = 150 // start middle
-    const points = [[0, currentY]]
-    const segments = 30
-    const stepX = 1000 / segments
+  // Build true history from chronologically ordered bets
+  const generateRealPaths = () => {
+    const history: number[][] = []
+    const currentPools = new Array(options.length).fill(0)
+    let currentTotal = 0
     
-    // seeded random generator
-    const random = (i: number) => {
-       const x = Math.sin(seed + i) * 10000;
-       return x - Math.floor(x);
-    }
-
-    for (let i = 1; i <= segments; i++) {
-       // Target Y is based on pct (0% = 290, 100% = 10)
-       const targetY = 290 - (endPct * 2.8)
-       // Move towards target logarithmically
-       const progress = i / segments
-       
-       // Add noise that decreases as we get closer to the end
-       let noise = (random(i) - 0.5) * 80 * (1 - progress)
-       
-       if (totalPool === 0) noise = 0 // perfectly flat if no bets
-       
-       currentY = currentY + (targetY - currentY) * (progress * 1.5) + noise
-       
-       if (i === segments) currentY = targetY // exact end
-       // Clamp bounds
-       if (currentY < 10) currentY = 10
-       if (currentY > 290) currentY = 290
-       
-       points.push([i * stepX, currentY])
+    // Helper to calculate and record percentages
+    const recordState = () => {
+       const pcts = currentTotal > 0 
+           ? currentPools.map(p => (p / currentTotal) * 100)
+           : currentPools.map(() => 100 / options.length)
+       history.push(pcts)
     }
     
-    return "M " + points.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L ")
+    // Step 0: Initial neutral state
+    recordState()
+    
+    // Replay each bet in order
+    for (const bet of bets) {
+       currentPools[bet.option_idx] += bet.amount
+       currentTotal += bet.amount
+       recordState()
+    }
+    
+    const numSteps = Math.max(history.length - 1, 1)
+    const stepX = 1000 / numSteps
+    
+    return options.map((_, optIdx) => {
+       const points = history.map((pcts, stepIdx) => {
+          const pct = pcts[optIdx]
+          const x = stepIdx * stepX
+          const y = Math.max(10, Math.min(290, 290 - (pct * 2.8)))
+          return [x, y]
+       })
+       
+       // Create a stepped line chart (horizontal then vertical)
+       let path = `M ${points[0][0].toFixed(1)} ${points[0][1].toFixed(1)}`
+       for (let i = 1; i < points.length; i++) {
+           path += ` L ${points[i][0].toFixed(1)} ${points[i-1][1].toFixed(1)}` // move right
+           path += ` L ${points[i][0].toFixed(1)} ${points[i][1].toFixed(1)}` // jump to new prob
+       }
+       return path
+    })
   }
+
+  const actualPaths = generateRealPaths()
 
   return (
     <div className="space-y-4">
@@ -179,7 +191,7 @@ function OddsChart({ options, bets, totalPool, roomId }: {
              const endY = 290 - (d.pct * 2.8);
              return (
                <g key={i}>
-                 <path d={generatePath(d.pct, roomId + i * 1337)} fill="none" stroke={colors[i % colors.length]} strokeWidth="3" strokeLinejoin="round" />
+                 <path d={actualPaths[i]} fill="none" stroke={colors[i % colors.length]} strokeWidth="3" strokeLinejoin="round" />
                  <circle cx="1000" cy={endY} r="5" fill={colors[i % colors.length]} />
                </g>
              )
