@@ -11,7 +11,7 @@ export function LandingHero() {
   return (
     <div className="relative flex flex-col items-center px-5 pt-28 pb-0 w-full overflow-hidden">
       {/* Background Ambient Effects */}
-      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-1/4 right-[-10%] w-[500px] h-[500px] bg-blue-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none mix-blend-overlay" />
 
@@ -19,10 +19,10 @@ export function LandingHero() {
       <div 
         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs text-foreground/80 mb-8 backdrop-blur-sm shadow-sm animate-fade-in relative overflow-hidden group"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-indigo-500/10 to-indigo-500/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
         </span>
         <span className="font-medium tracking-wide">Live on Soroban Testnet</span>
       </div>
@@ -84,7 +84,7 @@ export function LandingHero() {
         style={{ animationDelay: '400ms' }}
       >
         {[
-          { icon: ShieldCheck, title: 'Trustless Escrow', desc: 'Funds locked in a smart contract. No human holds the keys.', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20' },
+          { icon: ShieldCheck, title: 'Trustless Escrow', desc: 'Funds locked in a smart contract. No human holds the keys.', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
           { icon: Activity, title: 'On-Chain Verified', desc: 'Every bet and payout is instantly verifiable on the Stellar ledger.', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
           { icon: RefreshCw, title: 'Instant Settlement', desc: 'Winners are paid automatically by the contract. ~5s finality.', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
         ].map((f, i) => (
@@ -104,9 +104,9 @@ export function LandingHero() {
         className="mt-28 w-full max-w-4xl relative animate-slide-up opacity-0"
         style={{ animationDelay: '500ms' }}
       >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-transparent to-transparent z-20 pointer-events-none top-1/2" />
-        <div className="relative rounded-t-2xl border border-white/10 border-b-0 bg-[#121214] shadow-2xl p-6 md:p-8 overflow-hidden z-10 isolate">
-            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-transparent z-20 pointer-events-none top-1/2" />
+        <div className="relative rounded-t-2xl border border-white/10 border-b-0 bg-[#0A0A0A] shadow-2xl p-6 md:p-8 overflow-hidden z-10 isolate">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">
                 <div>
                      <h4 className="text-xl font-semibold mb-1.5 text-foreground/90">Will Bitcoin hit $100k by 2026?</h4>
@@ -116,7 +116,7 @@ export function LandingHero() {
                      </div>
                 </div>
                 <div className="hidden sm:block">
-                   <div className="px-3 py-1 rounded bg-emerald-500/10 text-emerald-400 font-mono text-xs border border-emerald-500/20">LIVE</div>
+                   <div className="px-3 py-1 rounded bg-indigo-500/10 text-indigo-400 font-mono text-xs border border-indigo-500/20">LIVE</div>
                 </div>
             </div>
             
@@ -124,10 +124,10 @@ export function LandingHero() {
                <div>
                   <div className="flex justify-between text-sm mb-2 font-medium">
                       <span className="text-foreground/80 flex items-center gap-2">Yes <span className="text-xs text-muted-foreground font-normal">31 bets</span></span>
-                      <span className="text-emerald-400 font-mono">68%</span>
+                      <span className="text-indigo-400 font-mono">68%</span>
                   </div>
                   <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full bg-emerald-500 relative">
+                      <div className="h-full bg-indigo-500 relative">
                          <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20" />
                       </div>
                   </div>

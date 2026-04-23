@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} dark`}>
-      <body className="font-sans min-h-screen bg-[#0a0a0b] text-foreground">
+      <body className="font-sans min-h-screen bg-[#020202] text-foreground">
         {children}
       </body>
     </html>

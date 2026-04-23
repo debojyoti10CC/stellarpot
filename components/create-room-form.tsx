@@ -73,7 +73,7 @@ export function CreateRoomForm() {
               onChange={(e) => setPrediction(e.target.value)}
               required
               rows={2}
-              className="bg-transparent border-white/[0.06] focus:border-emerald-500/30 resize-none text-sm"
+              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 resize-none text-sm"
             />
           </div>
 
@@ -89,7 +89,7 @@ export function CreateRoomForm() {
                       newOptions[index] = e.target.value
                       setOptions(newOptions)
                     }}
-                    className="flex-1 bg-transparent border-white/[0.06] focus:border-emerald-500/30 text-sm h-9"
+                    className="flex-1 bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9"
                   />
                   {options.length > 2 && (
                     <button type="button" onClick={() => removeOption(index)} className="p-1.5 rounded-lg text-muted-foreground/30 hover:text-red-400 hover:bg-red-500/5 transition-all">
@@ -106,7 +106,7 @@ export function CreateRoomForm() {
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addOption() } }}
-                  className="flex-1 bg-transparent border-white/[0.06] focus:border-emerald-500/30 text-sm h-9"
+                  className="flex-1 bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9"
                 />
                 <button type="button" onClick={addOption} className="p-1.5 rounded-lg border border-white/[0.06] text-muted-foreground/40 hover:text-foreground hover:border-white/[0.12] transition-all">
                   <Plus className="w-3.5 h-3.5" />
@@ -120,16 +120,16 @@ export function CreateRoomForm() {
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-2">
             <Label htmlFor="stake" className="text-xs text-muted-foreground/60">Stake (XLM)</Label>
             <Input id="stake" type="number" min="1" step="1" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} required
-              className="bg-transparent border-white/[0.06] focus:border-emerald-500/30 text-sm h-9 font-mono" />
+              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9 font-mono" />
           </div>
           <div className="rounded-xl border border-white/[0.06] bg-white/[0.01] p-4 space-y-2">
             <Label htmlFor="expiry" className="text-xs text-muted-foreground/60">Duration (days)</Label>
             <Input id="expiry" type="number" min="1" max="365" value={expiryDays} onChange={(e) => setExpiryDays(e.target.value)} required
-              className="bg-transparent border-white/[0.06] focus:border-emerald-500/30 text-sm h-9 font-mono" />
+              className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 text-sm h-9 font-mono" />
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm" disabled={isCreating || !prediction.trim()}>
+        <Button type="submit" className="w-full h-11 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-black font-semibold text-sm" disabled={isCreating || !prediction.trim()}>
           {isCreating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           Create Room
         </Button>

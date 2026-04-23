@@ -10,7 +10,7 @@ function HomeContent() {
   const { isConnected } = useWallet()
   
   return (
-    <div className="min-h-screen flex flex-col bg-[#0a0a0b]">
+    <div className="min-h-screen flex flex-col bg-[#020202]">
       <Header />
       <main className="flex-1">
         {isConnected ? <Dashboard /> : <LandingHero />}

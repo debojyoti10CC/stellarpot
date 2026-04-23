@@ -9,7 +9,7 @@ import Link from 'next/link'
 export default function CreatePage() {
   return (
     <WalletProvider>
-      <div className="min-h-screen flex flex-col bg-[#0a0a0b]">
+      <div className="min-h-screen flex flex-col bg-[#020202]">
         <Header />
         <main className="flex-1 py-8 px-5">
           <div className="max-w-lg mx-auto mb-5">

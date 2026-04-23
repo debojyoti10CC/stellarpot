@@ -11,7 +11,7 @@ import Link from 'next/link'
 
 function RoomCard({ room }: { room: OnChainRoom }) {
   const statusConfig = {
-    Open: { label: 'Live', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+    Open: { label: 'Live', class: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
     Resolved: { label: 'Resolved', class: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
     Cancelled: { label: 'Cancelled', class: 'bg-red-500/10 text-red-400 border-red-500/20' },
   }
@@ -36,10 +36,10 @@ function RoomCard({ room }: { room: OnChainRoom }) {
           <div className="mb-3">
             <div className="flex items-center justify-between text-xs mb-1">
               <span className="text-muted-foreground/60 truncate">{topOption.label}</span>
-              <span className="font-mono text-emerald-400">{topOption.pct}%</span>
+              <span className="font-mono text-indigo-400">{topOption.pct}%</span>
             </div>
             <div className="h-1 rounded-full bg-white/[0.04] overflow-hidden">
-              <div className="h-full bg-emerald-500/40 rounded-full" style={{ width: `${topOption.pct}%` }} />
+              <div className="h-full bg-indigo-500/40 rounded-full" style={{ width: `${topOption.pct}%` }} />
             </div>
           </div>
         )}
@@ -92,7 +92,7 @@ export function Dashboard() {
           <h2 className="text-base font-semibold mb-1">No rooms yet</h2>
           <p className="text-sm text-muted-foreground/50 mb-6">Create a prediction or join one with a room code</p>
           <div className="flex items-center justify-center gap-3">
-            <Button asChild size="sm" className="h-9 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-4">
+            <Button asChild size="sm" className="h-9 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-black text-xs font-semibold px-4">
               <Link href="/create"><Plus className="w-3.5 h-3.5 mr-1.5" />Create</Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="h-9 rounded-lg border-white/[0.08] text-xs px-4">
@@ -112,7 +112,7 @@ export function Dashboard() {
           <Button asChild variant="outline" size="sm" className="h-8 rounded-lg border-white/[0.06] text-xs px-3">
             <Link href="/join">Join</Link>
           </Button>
-          <Button asChild size="sm" className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-semibold px-3">
+          <Button asChild size="sm" className="h-8 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-black text-xs font-semibold px-3">
             <Link href="/create"><Plus className="w-3.5 h-3.5 mr-1" />Create</Link>
           </Button>
         </div>

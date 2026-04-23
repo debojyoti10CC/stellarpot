@@ -61,7 +61,7 @@ function ProbabilityBar({ options, bets, totalPool, winningOption, isResolved }:
 
   // Colors rotate through a curated palette
   const colors = [
-    { bg: 'bg-emerald-500', text: 'text-emerald-400', bar: 'bg-emerald-500/20', ring: 'ring-emerald-500/30' },
+    { bg: 'bg-indigo-500', text: 'text-indigo-400', bar: 'bg-indigo-500/20', ring: 'ring-indigo-500/30' },
     { bg: 'bg-rose-500', text: 'text-rose-400', bar: 'bg-rose-500/20', ring: 'ring-rose-500/30' },
     { bg: 'bg-blue-500', text: 'text-blue-400', bar: 'bg-blue-500/20', ring: 'ring-blue-500/30' },
     { bg: 'bg-amber-500', text: 'text-amber-400', bar: 'bg-amber-500/20', ring: 'ring-amber-500/30' },
@@ -110,8 +110,8 @@ function OddsChart({ options, bets, totalPool }: {
   bets: { option_idx: number; amount: number }[]
   totalPool: number
 }) {
-  const colors = ['bg-emerald-500', 'bg-rose-500', 'bg-blue-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500']
-  const textColors = ['text-emerald-400', 'text-rose-400', 'text-blue-400', 'text-amber-400', 'text-violet-400', 'text-cyan-400']
+  const colors = ['bg-indigo-500', 'bg-rose-500', 'bg-blue-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500']
+  const textColors = ['text-indigo-400', 'text-rose-400', 'text-blue-400', 'text-amber-400', 'text-violet-400', 'text-cyan-400']
 
   const data = options.map((opt, idx) => {
     const optBets = bets.filter(b => b.option_idx === idx)
@@ -290,7 +290,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const userPayout = payouts.find(p => p.address === user?.walletAddress)
 
   const statusConfig = {
-    Open: { label: 'Live', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', dot: 'bg-emerald-400' },
+    Open: { label: 'Live', class: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20', dot: 'bg-indigo-400' },
     Resolved: { label: 'Resolved', class: 'bg-primary/10 text-primary border-primary/20', dot: 'bg-primary' },
     Cancelled: { label: 'Cancelled', class: 'bg-red-500/10 text-red-400 border-red-500/20', dot: 'bg-red-400' },
   }
@@ -445,14 +445,14 @@ export function RoomView({ roomCode }: RoomViewProps) {
             {/* Your result */}
             {userPayout && (
               <div className={`flex items-center justify-between p-4 rounded-xl border ${
-                userPayout.isWinner ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-red-500/5 border-red-500/10'
+                userPayout.isWinner ? 'bg-indigo-500/5 border-indigo-500/10' : 'bg-red-500/5 border-red-500/10'
               }`}>
                 <div className="flex items-center gap-2.5">
-                  {userPayout.isWinner ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
+                  {userPayout.isWinner ? <TrendingUp className="w-4 h-4 text-indigo-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
                   <span className="text-sm font-medium">{userPayout.isWinner ? 'You won!' : 'Better luck next time'}</span>
                 </div>
                 <div className="text-right">
-                  <div className={`font-mono font-semibold text-sm ${userPayout.isWinner ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <div className={`font-mono font-semibold text-sm ${userPayout.isWinner ? 'text-indigo-400' : 'text-red-400'}`}>
                     {userPayout.isWinner ? '+' : ''}{userPayout.profit.toFixed(1)} XLM
                   </div>
                   <div className="text-[11px] text-muted-foreground/50 font-mono">
@@ -477,7 +477,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
                       <div className="flex items-center gap-2 font-mono">
                         <span className="text-muted-foreground/40">{p.betAmount.toFixed(1)}</span>
                         <ArrowRight className="w-3 h-3 text-muted-foreground/20" />
-                        <span className={p.isWinner ? 'text-emerald-400 font-medium' : 'text-red-400'}>{p.payout.toFixed(1)} XLM</span>
+                        <span className={p.isWinner ? 'text-indigo-400 font-medium' : 'text-red-400'}>{p.payout.toFixed(1)} XLM</span>
                       </div>
                     </div>
                   ))}
@@ -570,7 +570,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
       {/* ── Footer: on-chain verification ── */}
       <div className="flex items-center justify-center gap-4 py-3 text-[11px] text-muted-foreground/30">
         <div className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3 h-3 text-emerald-500/50" />
+          <ShieldCheck className="w-3 h-3 text-indigo-500/50" />
           <span className="font-mono">{CONTRACT_ID.slice(0, 6)}…{CONTRACT_ID.slice(-6)}</span>
         </div>
         <span>·</span>

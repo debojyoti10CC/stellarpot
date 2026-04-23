@@ -66,14 +66,14 @@ export function JoinRoomForm() {
             placeholder="e.g. A3K7RP"
             value={roomCode}
             onChange={(e) => { setRoomCode(e.target.value.toUpperCase()); setError('') }}
-            className="bg-transparent border-white/[0.06] focus:border-emerald-500/30 font-mono text-center text-lg tracking-[0.3em] uppercase h-12"
+            className="bg-transparent border-white/[0.06] focus:border-indigo-500/30 font-mono text-center text-lg tracking-[0.3em] uppercase h-12"
             maxLength={10}
             required
           />
           {error && <p className="text-xs text-red-400">{error}</p>}
         </div>
 
-        <Button type="submit" className="w-full h-11 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-sm" disabled={isSearching || !roomCode}>
+        <Button type="submit" className="w-full h-11 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-black font-semibold text-sm" disabled={isSearching || !roomCode}>
           {isSearching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
           Find Room
         </Button>
