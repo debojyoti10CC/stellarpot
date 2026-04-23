@@ -18,6 +18,60 @@ export { CONTRACT_ID, NATIVE_XLM_SAC };
 const server = new StellarSdk.rpc.Server(SOROBAN_RPC_URL);
 
 // ─────────────────────────────────────────
+//  UNIQUE ROOM CODE GENERATION
+//  Generates a 6-character alphanumeric code
+//  that maps to on-chain room IDs
+// ─────────────────────────────────────────
+
+const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No 0/O/1/I to avoid confusion
+
+export function generateRoomCode(): string {
+  let code = '';
+  const array = new Uint8Array(6);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 6; i++) {
+    code += ROOM_CODE_CHARS[array[i] % ROOM_CODE_CHARS.length];
+  }
+  return code;
+}
+
+// Local mapping: roomCode <-> on-chain roomId
+// In production this would be stored on-chain or in a decentralized registry
+const ROOM_CODE_STORAGE_KEY = 'stellarpot_room_codes';
+
+interface RoomCodeMap {
+  [code: string]: number; // code -> on-chain room ID
+}
+
+function getRoomCodeMap(): RoomCodeMap {
+  try {
+    const stored = localStorage.getItem(ROOM_CODE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoomCode(code: string, roomId: number): void {
+  const map = getRoomCodeMap();
+  map[code] = roomId;
+  localStorage.setItem(ROOM_CODE_STORAGE_KEY, JSON.stringify(map));
+}
+
+export function getRoomIdFromCode(code: string): number | null {
+  const map = getRoomCodeMap();
+  return map[code.toUpperCase()] ?? null;
+}
+
+export function getRoomCodeFromId(roomId: number): string | null {
+  const map = getRoomCodeMap();
+  for (const [code, id] of Object.entries(map)) {
+    if (id === roomId) return code;
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────
 //  HELPERS
 // ─────────────────────────────────────────
 
@@ -75,8 +129,25 @@ async function buildContractCall(
   const simulated = await server.simulateTransaction(tx);
 
   if (StellarSdk.rpc.Api.isSimulationError(simulated)) {
-    const errMsg = (simulated as any).error || 'Simulation failed';
-    throw new Error(`Simulation error: ${errMsg}`);
+    // Extract detailed error info
+    const simErr = simulated as any;
+    let errDetail = simErr.error || 'Unknown simulation error';
+    
+    // Parse diagnostic events for better error messages
+    if (simErr.events && simErr.events.length > 0) {
+      const eventDetails = simErr.events
+        .map((e: any) => {
+          try {
+            return JSON.stringify(e);
+          } catch {
+            return String(e);
+          }
+        })
+        .join('\n');
+      errDetail += `\nEvent log (newest first):\n${eventDetails}`;
+    }
+    
+    throw new Error(`Simulation error: ${errDetail}`);
   }
 
   const prepared = StellarSdk.rpc.assembleTransaction(tx, simulated).build();
@@ -111,6 +182,19 @@ async function readContract(
 }
 
 // ─────────────────────────────────────────
+//  BUILD SOROBAN VECTORS PROPERLY
+//  nativeToScVal can't correctly infer Vec<String>
+//  from a JS array, so we build it manually.
+// ─────────────────────────────────────────
+
+function buildStringVec(strings: string[]): StellarSdk.xdr.ScVal {
+  const scStrings = strings.map(s =>
+    StellarSdk.nativeToScVal(s, { type: 'string' })
+  );
+  return StellarSdk.xdr.ScVal.scvVec(scStrings);
+}
+
+// ─────────────────────────────────────────
 //  CONTRACT INTERFACE
 // ─────────────────────────────────────────
 
@@ -120,12 +204,12 @@ export async function createRoom(
   options: string[],
   stakeAmountXLM: number,
   expiryLedgers: number = 17280, // ~24 hours (5s per ledger)
-): Promise<number> {
+): Promise<string> {
   const args = [
     StellarSdk.nativeToScVal(creatorPublicKey, { type: 'address' }),
     StellarSdk.nativeToScVal(NATIVE_XLM_SAC, { type: 'address' }),
     StellarSdk.nativeToScVal(description, { type: 'string' }),
-    StellarSdk.nativeToScVal(options, { type: 'string' }),
+    buildStringVec(options),
     StellarSdk.nativeToScVal(BigInt(Math.round(stakeAmountXLM * 10_000_000)), { type: 'i128' }),
     StellarSdk.nativeToScVal(expiryLedgers, { type: 'u32' }),
   ];
@@ -136,10 +220,13 @@ export async function createRoom(
 
   // Read room count to get the new room ID
   const countVal = await readContract('get_room_count', []);
-  if (countVal) {
-    return Number(StellarSdk.scValToNative(countVal));
-  }
-  return 1;
+  const roomId = countVal ? Number(StellarSdk.scValToNative(countVal)) : 1;
+
+  // Generate unique room code and map it
+  const roomCode = generateRoomCode();
+  saveRoomCode(roomCode, roomId);
+
+  return roomCode;
 }
 
 export async function placeBet(
@@ -197,6 +284,7 @@ export interface OnChainBet {
 
 export interface OnChainRoom {
   id: number;
+  code: string | null; // Unique room code for sharing
   creator: string;
   token: string;
   description: string;
@@ -235,6 +323,7 @@ function parseRoom(scVal: StellarSdk.xdr.ScVal, roomId: number): OnChainRoom {
 
   return {
     id: roomId,
+    code: getRoomCodeFromId(roomId),
     creator: typeof native.creator === 'string' ? native.creator : native.creator.toString(),
     token: typeof native.token === 'string' ? native.token : native.token.toString(),
     description: native.description?.toString() || '',
@@ -264,6 +353,12 @@ export async function getRoom(roomId: number): Promise<OnChainRoom | null> {
   }
 }
 
+export async function getRoomByCode(code: string): Promise<OnChainRoom | null> {
+  const roomId = getRoomIdFromCode(code.toUpperCase());
+  if (roomId === null) return null;
+  return getRoom(roomId);
+}
+
 export async function getRoomCount(): Promise<number> {
   const result = await readContract('get_room_count', []);
   if (!result) return 0;
@@ -288,6 +383,46 @@ export async function getUserRooms(walletAddress: string): Promise<OnChainRoom[]
     r.creator === walletAddress ||
     r.bets.some(b => b.bettor === walletAddress)
   );
+}
+
+// ─────────────────────────────────────────
+//  PAYOUT CALCULATION HELPERS
+// ─────────────────────────────────────────
+
+export interface PayoutInfo {
+  address: string;
+  betAmount: number;
+  payout: number;
+  profit: number;
+  isWinner: boolean;
+}
+
+export function calculatePayouts(room: OnChainRoom): PayoutInfo[] {
+  if (room.status !== 'Resolved') return [];
+
+  const winningIdx = room.winning_option;
+  const winners = room.bets.filter(b => b.option_idx === winningIdx);
+  const winnerTotal = winners.reduce((sum, b) => sum + b.amount, 0);
+
+  return room.bets.map(bet => {
+    const isWinner = bet.option_idx === winningIdx;
+    let payout = 0;
+
+    if (isWinner && winnerTotal > 0) {
+      payout = (bet.amount / winnerTotal) * room.total_pool;
+    } else if (winners.length === 0) {
+      // No winners — everyone was refunded
+      payout = bet.amount;
+    }
+
+    return {
+      address: bet.bettor,
+      betAmount: bet.amount,
+      payout: Math.round(payout * 10_000_000) / 10_000_000,
+      profit: Math.round((payout - bet.amount) * 10_000_000) / 10_000_000,
+      isWinner,
+    };
+  });
 }
 
 // ─────────────────────────────────────────

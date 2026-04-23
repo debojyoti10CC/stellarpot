@@ -18,16 +18,18 @@ function RoomCard({ room }: { room: OnChainRoom }) {
     Cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
   }
 
+  const linkPath = room.code ? `/room/${room.code}` : `/room/${room.id}`
+
   return (
-    <Link href={`/room/${room.id}`}>
+    <Link href={linkPath}>
       <Card className="hover:border-primary/30 transition-colors cursor-pointer">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <Badge variant="outline" className={statusColors[room.status]}>
               {room.status}
             </Badge>
-            <Badge variant="outline" className="font-mono text-xs">
-              #{room.id}
+            <Badge variant="outline" className="font-mono text-xs tracking-wider">
+              {room.code || `#${room.id}`}
             </Badge>
           </div>
           <CardTitle className="text-base line-clamp-2">{room.description}</CardTitle>

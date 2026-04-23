@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useWallet } from '@/lib/wallet-context'
-import { getRoom } from '@/lib/soroban-client'
+import { getRoomByCode, getRoom, getRoomIdFromCode } from '@/lib/soroban-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ import { Loader2, Search } from 'lucide-react'
 export function JoinRoomForm() {
   const router = useRouter()
   const { isConnected } = useWallet()
-  const [roomId, setRoomId] = useState('')
+  const [roomCode, setRoomCode] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState('')
 
@@ -23,16 +23,29 @@ export function JoinRoomForm() {
     setIsSearching(true)
 
     try {
-      const id = parseInt(roomId, 10)
-      if (isNaN(id) || id <= 0) {
-        setError('Please enter a valid room number.')
+      const code = roomCode.trim().toUpperCase()
+      if (!code) {
+        setError('Please enter a room code.')
         return
       }
-      const room = await getRoom(id)
+
+      // Try as room code first
+      let room = await getRoomByCode(code)
+      
+      // Fallback: try as numeric ID
+      if (!room) {
+        const numericId = parseInt(code, 10)
+        if (!isNaN(numericId) && numericId > 0) {
+          room = await getRoom(numericId)
+        }
+      }
+
       if (room) {
-        router.push(`/room/${room.id}`)
+        // Navigate using the code (or numeric ID as fallback)
+        const shareCode = room.code || code
+        router.push(`/room/${shareCode}`)
       } else {
-        setError('Room not found on-chain. Please check the ID and try again.')
+        setError('Room not found. Check the code and try again.')
       }
     } catch {
       setError('Failed to query contract. Please try again.')
@@ -58,24 +71,24 @@ export function JoinRoomForm() {
       <CardHeader>
         <CardTitle>Join Prediction Room</CardTitle>
         <CardDescription>
-          Enter the room ID to find an on-chain prediction market
+          Enter the room code shared by the creator to join their prediction market
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="roomId">Room ID</Label>
+            <Label htmlFor="roomCode">Room Code</Label>
             <Input
-              id="roomId"
-              type="number"
-              min="1"
-              placeholder="Enter room number (e.g. 1)"
-              value={roomId}
+              id="roomCode"
+              type="text"
+              placeholder="e.g. A3K7RP"
+              value={roomCode}
               onChange={(e) => {
-                setRoomId(e.target.value)
+                setRoomCode(e.target.value.toUpperCase())
                 setError('')
               }}
-              className="font-mono text-center text-lg"
+              className="font-mono text-center text-lg tracking-widest uppercase"
+              maxLength={10}
               required
             />
           </div>
@@ -87,7 +100,7 @@ export function JoinRoomForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSearching || !roomId}
+            disabled={isSearching || !roomCode}
           >
             {isSearching ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

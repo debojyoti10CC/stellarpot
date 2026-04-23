@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useWallet } from '@/lib/wallet-context'
-import { getRoom, placeBet, resolveRoom as resolveRoomOnChain, cancelRoom } from '@/lib/soroban-client'
-import type { OnChainRoom } from '@/lib/soroban-client'
+import { 
+  getRoom, getRoomByCode, getRoomIdFromCode,
+  placeBet, resolveRoom as resolveRoomOnChain, cancelRoom,
+  calculatePayouts
+} from '@/lib/soroban-client'
+import type { OnChainRoom, PayoutInfo } from '@/lib/soroban-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -19,7 +23,11 @@ import {
   AlertCircle,
   Ban,
   ShieldCheck,
-  Share2
+  Share2,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
 } from 'lucide-react'
 import {
   Dialog,
@@ -32,7 +40,7 @@ import {
 import { CONTRACT_ID } from '@/lib/soroban-client'
 
 interface RoomViewProps {
-  roomCode: string // This is now a room ID (number)
+  roomCode: string // This is now a room code (alphanumeric) OR room ID (number)
 }
 
 export function RoomView({ roomCode }: RoomViewProps) {
@@ -46,14 +54,32 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const [copiedLink, setCopiedLink] = useState(false)
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-
-  const roomId = parseInt(roomCode, 10)
+  const [payouts, setPayouts] = useState<PayoutInfo[]>([])
+  const [resolvedRoomId, setResolvedRoomId] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchRoom = async () => {
-      const foundRoom = await getRoom(roomId)
+      let foundRoom: OnChainRoom | null = null;
+
+      // Try as room code first
+      const roomId = getRoomIdFromCode(roomCode);
+      if (roomId !== null) {
+        foundRoom = await getRoom(roomId);
+        setResolvedRoomId(roomId);
+      } else {
+        // Fallback: try as numeric ID for backwards compatibility
+        const numericId = parseInt(roomCode, 10);
+        if (!isNaN(numericId) && numericId > 0) {
+          foundRoom = await getRoom(numericId);
+          setResolvedRoomId(numericId);
+        }
+      }
+
       if (foundRoom) {
-        setRoom(foundRoom)
+        setRoom(foundRoom);
+        if (foundRoom.status === 'Resolved') {
+          setPayouts(calculatePayouts(foundRoom));
+        }
       }
       setLoading(false)
     }
@@ -61,7 +87,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
     // Poll for updates every 10 seconds (on-chain reads)
     const interval = setInterval(fetchRoom, 10000)
     return () => clearInterval(interval)
-  }, [roomId])
+  }, [roomCode])
 
   const copyContractId = () => {
     navigator.clipboard.writeText(CONTRACT_ID)
@@ -70,13 +96,14 @@ export function RoomView({ roomCode }: RoomViewProps) {
   }
 
   const copyRoomLink = () => {
-    navigator.clipboard.writeText(window.location.href)
+    const shareCode = room?.code || roomCode;
+    navigator.clipboard.writeText(`${window.location.origin}/room/${shareCode}`)
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2000)
   }
 
   const handleJoin = async () => {
-    if (!user || !room || selectedOption === null) return
+    if (!user || !room || selectedOption === null || resolvedRoomId === null) return
 
     setIsJoining(true)
     try {
@@ -85,13 +112,13 @@ export function RoomView({ roomCode }: RoomViewProps) {
       // No server involved. Freighter prompts for signature.
       const txHash = await placeBet(
         user.walletAddress,
-        roomId,
+        resolvedRoomId,
         selectedOption,
       )
       console.log('Bet placed, tx:', txHash)
       
       // Refresh room state from chain
-      const updated = await getRoom(roomId)
+      const updated = await getRoom(resolvedRoomId)
       if (updated) setRoom(updated)
     } catch (error) {
       console.error('Failed to place bet:', error)
@@ -102,7 +129,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   }
 
   const handleResolve = async (winningOptionIdx: number) => {
-    if (!user || !room) return
+    if (!user || !room || resolvedRoomId === null) return
 
     setIsResolving(true)
     try {
@@ -110,14 +137,15 @@ export function RoomView({ roomCode }: RoomViewProps) {
       // No server touches the money. It's all on-chain.
       const txHash = await resolveRoomOnChain(
         user.walletAddress,
-        roomId,
+        resolvedRoomId,
         winningOptionIdx,
       )
       console.log('Room resolved, tx:', txHash)
       
-      const updated = await getRoom(roomId)
+      const updated = await getRoom(resolvedRoomId)
       if (updated) {
         setRoom(updated)
+        setPayouts(calculatePayouts(updated))
         setResolveDialogOpen(false)
       }
     } catch (error) {
@@ -129,14 +157,14 @@ export function RoomView({ roomCode }: RoomViewProps) {
   }
 
   const handleCancel = async () => {
-    if (!user || !room) return
+    if (!user || !room || resolvedRoomId === null) return
 
     setIsCancelling(true)
     try {
-      const txHash = await cancelRoom(user.walletAddress, roomId)
+      const txHash = await cancelRoom(user.walletAddress, resolvedRoomId)
       console.log('Room cancelled, tx:', txHash)
       
-      const updated = await getRoom(roomId)
+      const updated = await getRoom(resolvedRoomId)
       if (updated) setRoom(updated)
     } catch (error) {
       console.error('Failed to cancel:', error)
@@ -167,7 +195,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
             <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Room Not Found</h2>
             <p className="text-muted-foreground">
-              Room #{roomCode} doesn&apos;t exist on-chain.
+              Room &quot;{roomCode}&quot; doesn&apos;t exist. Check the code and try again.
             </p>
           </div>
         </CardContent>
@@ -185,6 +213,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const canJoin = isConnected && !hasJoined && room.status === 'Open'
   const canResolve = isCreator && room.status === 'Open' && room.bets.length > 0
   const canCancel = isCreator && room.status === 'Open'
+  const displayCode = room.code || roomCode
 
   const statusColors = {
     Open: 'bg-green-500/10 text-green-500 border-green-500/20',
@@ -202,6 +231,9 @@ export function RoomView({ roomCode }: RoomViewProps) {
       percentage: room.total_pool > 0 ? Math.round((optionPool / room.total_pool) * 100) : 0,
     }
   }
+
+  // Get user's payout info
+  const userPayout = payouts.find(p => p.address === user?.walletAddress)
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -222,8 +254,8 @@ export function RoomView({ roomCode }: RoomViewProps) {
                 {isCreator && (
                   <Badge variant="secondary">Creator</Badge>
                 )}
-                <Badge variant="outline" className="font-mono text-xs">
-                  Room #{room.id}
+                <Badge variant="outline" className="font-mono text-xs tracking-wider">
+                  {displayCode}
                 </Badge>
               </div>
               <CardTitle className="text-xl">{room.description}</CardTitle>
@@ -377,18 +409,94 @@ export function RoomView({ roomCode }: RoomViewProps) {
             </div>
           )}
 
+          {/* ─── POST-RESOLUTION: Payout Summary ─── */}
           {room.status === 'Resolved' && (
-            <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
-              <div className="flex items-center justify-center gap-2">
-                <Trophy className="w-5 h-5 text-accent" />
-                <span className="font-medium">
-                  Winning answer: {room.options[room.winning_option]}
-                </span>
+            <div className="space-y-4">
+              {/* Winner announcement */}
+              <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="flex items-center justify-center gap-2">
+                  <Trophy className="w-5 h-5 text-accent" />
+                  <span className="font-medium">
+                    Winning answer: {room.options[room.winning_option]}
+                  </span>
+                </div>
               </div>
-              {userBet?.option_idx === room.winning_option && (
-                <p className="text-sm text-center mt-2 text-accent">
-                  Congratulations! Winnings were sent to your wallet automatically.
-                </p>
+
+              {/* Your personal result */}
+              {userPayout && (
+                <div className={`p-4 rounded-lg border ${
+                  userPayout.isWinner 
+                    ? 'bg-green-500/5 border-green-500/20' 
+                    : 'bg-red-500/5 border-red-500/20'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {userPayout.isWinner ? (
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <TrendingDown className="w-5 h-5 text-red-400" />
+                      )}
+                      <span className="font-medium">
+                        {userPayout.isWinner ? 'You won!' : 'You lost'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-mono font-semibold ${
+                        userPayout.isWinner ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {userPayout.isWinner ? '+' : ''}{userPayout.profit.toFixed(1)} XLM
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Staked {userPayout.betAmount.toFixed(1)} → Received {userPayout.payout.toFixed(1)} XLM
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Full payout breakdown */}
+              {payouts.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Payout Breakdown (On-Chain Settled)
+                  </h4>
+                  <div className="space-y-2">
+                    {payouts.map((p, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-between p-3 rounded-lg text-sm ${
+                          p.isWinner 
+                            ? 'bg-green-500/5 border border-green-500/10' 
+                            : 'bg-white/[0.02] border border-white/[0.04]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">
+                            {p.address.slice(0, 4)}...{p.address.slice(-4)}
+                          </span>
+                          {p.address === user?.walletAddress && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">You</Badge>
+                          )}
+                          {p.isWinner && (
+                            <Trophy className="w-3.5 h-3.5 text-accent" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="text-muted-foreground">
+                            {p.betAmount.toFixed(1)} XLM
+                          </span>
+                          <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                          <span className={`font-medium ${
+                            p.isWinner ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {p.payout.toFixed(1)} XLM
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -464,7 +572,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
       </Card>
 
       {/* Participants List */}
-      {room.bets.length > 0 && (
+      {room.bets.length > 0 && room.status !== 'Resolved' && (
         <Card className="glass rounded-2xl border-white/[0.06]">
           <CardHeader>
             <CardTitle className="text-lg text-gradient">On-Chain Bets</CardTitle>

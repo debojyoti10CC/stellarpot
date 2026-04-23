@@ -46,14 +46,14 @@ export function CreateRoomForm() {
       // This calls the SOROBAN CONTRACT directly
       // Transaction is signed by Freighter, submitted to chain
       // Room state is stored ON-CHAIN, not in any database
-      const roomId = await createRoom(
+      const roomCode = await createRoom(
         user.walletAddress,
         prediction,
         options,
         parseFloat(stakeAmount),
         expiryLedgers,
       )
-      router.push(`/room/${roomId}`)
+      router.push(`/room/${roomCode}`)
     } catch (error) {
       console.error('Failed to create room:', error)
       alert("Failed to create room: " + (error instanceof Error ? error.message : JSON.stringify(error)))
