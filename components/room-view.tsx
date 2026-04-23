@@ -18,7 +18,8 @@ import {
   Trophy,
   AlertCircle,
   Ban,
-  ShieldCheck
+  ShieldCheck,
+  Share2
 } from 'lucide-react'
 import {
   Dialog,
@@ -42,6 +43,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const [isResolving, setIsResolving] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -65,6 +67,12 @@ export function RoomView({ roomCode }: RoomViewProps) {
     navigator.clipboard.writeText(CONTRACT_ID)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyRoomLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2000)
   }
 
   const handleJoin = async () => {
@@ -220,19 +228,34 @@ export function RoomView({ roomCode }: RoomViewProps) {
               </div>
               <CardTitle className="text-xl">{room.description}</CardTitle>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={copyContractId}
-              className="shrink-0"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 mr-2" />
-              ) : (
-                <Copy className="w-4 h-4 mr-2" />
-              )}
-              Contract
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyRoomLink}
+                className="shrink-0"
+              >
+                {copiedLink ? (
+                  <Check className="w-4 h-4 mr-2" />
+                ) : (
+                  <Share2 className="w-4 h-4 mr-2" />
+                )}
+                Share
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyContractId}
+                className="shrink-0"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 mr-2" />
+                ) : (
+                  <Copy className="w-4 h-4 mr-2" />
+                )}
+                Contract
+              </Button>
+            </div>
           </div>
           <CardDescription className="flex flex-wrap gap-4 pt-2">
             <span className="flex items-center gap-1.5">
