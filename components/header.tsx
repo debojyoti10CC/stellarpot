@@ -13,8 +13,7 @@ export function Header() {
       <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center text-[11px] font-black text-black tracking-tight">SP</div>
-            <span className="font-semibold text-[15px] text-foreground/90">StellarPot</span>
+            <span className="font-bold text-[16px] text-foreground/90 tracking-tight">StellarPot</span>
           </Link>
           {isConnected && (
             <nav className="hidden sm:flex items-center gap-1">
