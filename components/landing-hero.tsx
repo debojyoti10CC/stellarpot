@@ -76,16 +76,16 @@ export function LandingHero() {
               </div>
             </div>
             
-            <h3 className="text-xl font-medium mb-8 leading-snug">Will BTC trade above $120k before January 2027?</h3>
+            <h3 className="text-xl font-medium mb-8 leading-snug">Will Debojyoti actually finish the video by tonight?</h3>
             
             <div className="space-y-2">
               <div className="relative overflow-hidden rounded-lg border border-border bg-accent/30 p-4 flex justify-between items-center">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-foreground"></div>
-                <div className="font-medium text-sm">Yes</div>
+                <div className="font-medium text-sm">Yes, definitely</div>
                 <div className="font-mono text-sm">74%</div>
               </div>
               <div className="rounded-lg border border-border bg-card p-4 flex justify-between items-center">
-                <div className="font-medium text-sm text-muted-foreground">No</div>
+                <div className="font-medium text-sm text-muted-foreground">No, he'll lag</div>
                 <div className="font-mono text-sm text-muted-foreground">26%</div>
               </div>
             </div>
