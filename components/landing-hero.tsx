@@ -78,76 +78,78 @@ export function LandingHero() {
         </p>
       )}
 
-      {/* Feature Grids */}
-      <div 
-        className="grid md:grid-cols-3 gap-6 mt-28 w-full max-w-5xl px-4 animate-slide-up opacity-0"
-        style={{ animationDelay: '400ms' }}
-      >
-        {[
-          { icon: ShieldCheck, title: 'Trustless Escrow', desc: 'Funds locked in a smart contract. No human holds the keys.', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20' },
-          { icon: Activity, title: 'On-Chain Verified', desc: 'Every bet and payout is instantly verifiable on the Stellar ledger.', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20' },
-          { icon: RefreshCw, title: 'Instant Settlement', desc: 'Winners are paid automatically by the contract. ~5s finality.', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20' },
-        ].map((f, i) => (
-          <div key={i} className="relative group p-6 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/[0.07] transition-colors overflow-hidden">
-            <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] ${f.bg} rounded-full -mr-10 -mt-10 opacity-50 group-hover:opacity-100 transition-opacity`} />
-            <div className={`w-12 h-12 rounded-xl ${f.bg} border ${f.border} flex items-center justify-center mb-4 relative z-10`}>
-              <f.icon className={`w-6 h-6 ${f.color}`} />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2 relative z-10">{f.title}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed relative z-10">{f.desc}</p>
-          </div>
-        ))}
-      </div>
+
       
       {/* Visual Mockup representation below features */}
       <div 
-        className="mt-28 w-full max-w-4xl relative animate-slide-up opacity-0"
-        style={{ animationDelay: '500ms' }}
+        className="mt-20 w-full max-w-4xl relative animate-slide-up opacity-0"
+        style={{ animationDelay: '400ms' }}
       >
         <div className="absolute inset-0 bg-gradient-to-t from-[#020202] via-transparent to-transparent z-20 pointer-events-none top-1/2" />
         <div className="relative rounded-t-2xl border border-white/10 border-b-0 bg-[#0A0A0A] shadow-2xl p-6 md:p-8 overflow-hidden z-10 isolate">
             <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/5">
+            <div className="flex items-center justify-between mb-6">
                 <div>
                      <h4 className="text-xl font-semibold mb-1.5 text-foreground/90">Will Bitcoin hit $100k by 2026?</h4>
-                     <div className="flex gap-4 text-sm text-muted-foreground font-mono mt-2">
-                        <span>👥 42 bets</span>
-                        <span>💰 2,450 XLM pool</span>
+                     <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                        <span>$2,450,000 Vol.</span>
                      </div>
                 </div>
                 <div className="hidden sm:block">
-                   <div className="px-3 py-1 rounded bg-indigo-500/10 text-indigo-400 font-mono text-xs border border-indigo-500/20">LIVE</div>
+                   <div className="px-3 py-1 rounded bg-indigo-500/10 text-indigo-400 font-medium text-xs border border-indigo-500/20">LIVE</div>
                 </div>
             </div>
             
-            <div className="space-y-5">
-               <div>
-                  <div className="flex justify-between text-sm mb-2 font-medium">
-                      <span className="text-foreground/80 flex items-center gap-2">Yes <span className="text-xs text-muted-foreground font-normal">31 bets</span></span>
-                      <span className="text-indigo-400 font-mono">68%</span>
-                  </div>
-                  <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full bg-indigo-500 relative">
-                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20" />
-                      </div>
-                  </div>
-               </div>
-               <div>
-                  <div className="flex justify-between text-sm mb-2 font-medium">
-                      <span className="text-foreground/80 flex items-center gap-2">No <span className="text-xs text-muted-foreground font-normal">11 bets</span></span>
-                      <span className="text-amber-400 font-mono">32%</span>
-                  </div>
-                  <div className="w-full h-3 rounded-full bg-white/5 overflow-hidden">
-                      <div className="h-full bg-amber-500 w-[32%] relative">
-                         <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/20" />
-                      </div>
-                  </div>
-               </div>
+            {/* Fake SVG Line Graph */}
+            <div className="relative w-full h-[240px] mb-8 select-none">
+              <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none" className="overflow-visible">
+                {/* Grid lines */}
+                <line x1="0" y1="50" x2="1000" y2="50" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+                
+                {/* Background watermark */}
+                <text x="500" y="165" fill="rgba(255,255,255,0.03)" fontSize="64" fontWeight="bold" textAnchor="middle">StellarPot</text>
+                
+                {/* Line 1: No (Blue) */}
+                <path d="M 0 130 L 50 130 L 100 120 L 150 125 L 200 145 L 250 135 L 300 230 L 320 250 L 350 200 L 380 230 L 400 180 L 450 170 L 500 150 L 550 140 L 600 160 L 650 155 L 700 145 L 750 160 L 800 170 L 850 190 L 900 180 L 950 155 L 1000 160" 
+                      fill="none" stroke="#60a5fa" strokeWidth="3" strokeLinejoin="round" />
+                      
+                {/* Line 2: Yes (Indigo) */}
+                <path d="M 0 170 L 50 170 L 100 180 L 150 175 L 200 155 L 250 165 L 300 70 L 320 50 L 350 100 L 380 70 L 400 120 L 450 130 L 500 150 L 550 160 L 600 140 L 650 145 L 700 155 L 750 140 L 800 130 L 850 110 L 900 120 L 950 145 L 1000 140" 
+                      fill="none" stroke="#818cf8" strokeWidth="3" strokeLinejoin="round" />
+                      
+                {/* End points */}
+                <circle cx="1000" cy="160" r="5" fill="#60a5fa" />
+                <circle cx="1000" cy="140" r="5" fill="#818cf8" />
+              </svg>
+              
+              {/* Y-axis labels */}
+              <div className="absolute top-[30px] left-0 text-[10px] text-muted-foreground/40 font-mono">75¢</div>
+              <div className="absolute top-[130px] left-0 text-[10px] text-muted-foreground/40 font-mono">50¢</div>
+              <div className="absolute top-[230px] left-0 text-[10px] text-muted-foreground/40 font-mono">25¢</div>
+              
+              {/* X-axis labels */}
+              <div className="absolute bottom-[-20px] left-[5%] text-[10px] text-muted-foreground/40 font-mono">May</div>
+              <div className="absolute bottom-[-20px] left-[25%] text-[10px] text-muted-foreground/40 font-mono">Jun</div>
+              <div className="absolute bottom-[-20px] left-[45%] text-[10px] text-muted-foreground/40 font-mono">Jul</div>
+              <div className="absolute bottom-[-20px] left-[65%] text-[10px] text-muted-foreground/40 font-mono">Aug</div>
+              <div className="absolute bottom-[-20px] left-[85%] text-[10px] text-muted-foreground/40 font-mono">Sep</div>
+
+              {/* Badges on right side */}
+              <div className="absolute top-[130px] right-0 translate-x-[110%] flex flex-col gap-2">
+                <div className="px-2 py-1 rounded bg-indigo-500/20 text-indigo-400 font-mono text-xs border border-indigo-500/30 font-semibold whitespace-nowrap">
+                  Yes 68¢
+                </div>
+                <div className="px-2 py-1 rounded bg-blue-500/20 text-blue-400 font-mono text-xs border border-blue-500/30 font-semibold whitespace-nowrap">
+                  No 32¢
+                </div>
+              </div>
             </div>
             
-            <div className="mt-8 flex gap-3 pb-8">
+            <div className="mt-12 flex gap-3 pb-8">
                <div className="flex-1 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center pointer-events-none opacity-50">
-                  <span className="text-muted-foreground font-medium text-sm">Place Bet</span>
+                  <span className="text-muted-foreground font-medium text-sm text-center">Please connect to place bet</span>
                </div>
             </div>
         </div>

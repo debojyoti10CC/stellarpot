@@ -105,57 +105,103 @@ function ProbabilityBar({ options, bets, totalPool, winningOption, isResolved }:
 
 // ── Polymarket-style Odds Chart ─────────────────────────
 
-function OddsChart({ options, bets, totalPool }: {
+function OddsChart({ options, bets, totalPool, roomId }: {
   options: string[]
   bets: { option_idx: number; amount: number }[]
   totalPool: number
+  roomId: number
 }) {
-  const colors = ['bg-indigo-500', 'bg-rose-500', 'bg-blue-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500']
+  const colors = ['#818cf8', '#fb7185', '#60a5fa', '#fbbf24', '#a78bfa', '#22d3ee']
   const textColors = ['text-indigo-400', 'text-rose-400', 'text-blue-400', 'text-amber-400', 'text-violet-400', 'text-cyan-400']
 
   const data = options.map((opt, idx) => {
     const optBets = bets.filter(b => b.option_idx === idx)
     const pool = optBets.reduce((s, b) => s + b.amount, 0)
-    const pct = totalPool > 0 ? (pool / totalPool) * 100 : 0
+    const pct = totalPool > 0 ? (pool / totalPool) * 100 : (100 / options.length) // even split if no bets
     return { label: opt, pct, pool, count: optBets.length }
   })
 
-  const maxPct = Math.max(...data.map(d => d.pct), 10)
+  // Generate a deterministic random walk for each option that ends at the current pct
+  const generatePath = (endPct: number, seed: number) => {
+    let currentY = 150 // start middle
+    const points = [[0, currentY]]
+    const segments = 30
+    const stepX = 1000 / segments
+    
+    // seeded random generator
+    const random = (i: number) => {
+       const x = Math.sin(seed + i) * 10000;
+       return x - Math.floor(x);
+    }
+
+    for (let i = 1; i <= segments; i++) {
+       // Target Y is based on pct (0% = 290, 100% = 10)
+       const targetY = 290 - (endPct * 2.8)
+       // Move towards target logarithmically
+       const progress = i / segments
+       
+       // Add noise that decreases as we get closer to the end
+       let noise = (random(i) - 0.5) * 80 * (1 - progress)
+       
+       if (totalPool === 0) noise = 0 // perfectly flat if no bets
+       
+       currentY = currentY + (targetY - currentY) * (progress * 1.5) + noise
+       
+       if (i === segments) currentY = targetY // exact end
+       // Clamp bounds
+       if (currentY < 10) currentY = 10
+       if (currentY > 290) currentY = 290
+       
+       points.push([i * stepX, currentY])
+    }
+    
+    return "M " + points.map(p => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" L ")
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Market Odds</span>
+          <span className="text-sm font-medium text-muted-foreground">Market Odds Over Time</span>
         </div>
         <span className="text-xs text-muted-foreground/50 font-mono">{totalPool > 0 ? `${totalPool.toFixed(1)} XLM total` : 'No bets yet'}</span>
       </div>
 
-      <div className="space-y-3">
+      <div className="relative w-full h-[220px] select-none border border-white/[0.04] rounded-xl bg-black/20 overflow-hidden">
+        <svg width="100%" height="100%" viewBox="0 0 1000 300" preserveAspectRatio="none">
+          {/* Grid lines */}
+          <line x1="0" y1="75" x2="1000" y2="75" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <line x1="0" y1="150" x2="1000" y2="150" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <line x1="0" y1="225" x2="1000" y2="225" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          
+          {data.map((d, i) => {
+             const endY = 290 - (d.pct * 2.8);
+             return (
+               <g key={i}>
+                 <path d={generatePath(d.pct, roomId + i * 1337)} fill="none" stroke={colors[i % colors.length]} strokeWidth="3" strokeLinejoin="round" />
+                 <circle cx="1000" cy={endY} r="5" fill={colors[i % colors.length]} />
+               </g>
+             )
+          })}
+        </svg>
+        
+        {/* Y-axis labels */}
+        <div className="absolute top-[65px] left-2 text-[10px] text-muted-foreground/40 font-mono">75%</div>
+        <div className="absolute top-[140px] left-2 text-[10px] text-muted-foreground/40 font-mono">50%</div>
+        <div className="absolute top-[215px] left-2 text-[10px] text-muted-foreground/40 font-mono">25%</div>
+      </div>
+      
+      {/* Legend */}
+      <div className="grid grid-cols-2 gap-3">
         {data.map((d, i) => (
-          <div key={i} className="space-y-1.5">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-foreground/80 font-medium truncate max-w-[60%]">{d.label}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground/60">{d.count} bet{d.count !== 1 ? 's' : ''}</span>
-                <span className={`font-mono font-semibold tabular-nums ${textColors[i % textColors.length]}`}>
-                  {d.pct.toFixed(0)}%
-                </span>
+           <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <div className="flex items-center gap-2">
+                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+                 <span className="text-xs text-foreground/80 truncate max-w-[100px]">{d.label}</span>
               </div>
-            </div>
-            <div className="h-7 rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden relative">
-              <div
-                className={`h-full ${colors[i % colors.length]} opacity-15 rounded-lg transition-all duration-700 ease-out`}
-                style={{ width: `${(d.pct / maxPct) * 100}%` }}
-              />
-              <div className="absolute inset-0 flex items-center px-3">
-                <span className="text-xs font-mono text-muted-foreground/40">
-                  {d.pool > 0 ? `${d.pool.toFixed(1)} XLM` : '—'}
-                </span>
-              </div>
-            </div>
-          </div>
+              <span className={`text-xs font-mono font-medium ${textColors[i % textColors.length]}`}>{d.pct.toFixed(0)}%</span>
+           </div>
         ))}
       </div>
     </div>
@@ -354,7 +400,7 @@ export function RoomView({ roomCode }: RoomViewProps) {
 
       {/* ── Odds Chart ── */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
-        <OddsChart options={room.options} bets={room.bets} totalPool={room.total_pool} />
+        <OddsChart options={room.options} bets={room.bets} totalPool={room.total_pool} roomId={resolvedRoomId || 0} />
       </div>
 
       {/* ── Bet / Resolution Section ── */}
