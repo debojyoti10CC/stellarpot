@@ -1,19 +1,17 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useWallet } from '@/lib/wallet-context'
 import { 
-  getRoom, getRoomByCode, getRoomIdFromCode,
+  getRoom, getRoomIdFromCode,
   placeBet, resolveRoom as resolveRoomOnChain, cancelRoom,
   calculatePayouts
 } from '@/lib/soroban-client'
 import type { OnChainRoom, PayoutInfo } from '@/lib/soroban-client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
   Users, 
-  Clock, 
   Coins, 
   Copy, 
   Check, 
@@ -24,10 +22,12 @@ import {
   Ban,
   ShieldCheck,
   Share2,
-  DollarSign,
   TrendingUp,
   TrendingDown,
   ArrowRight,
+  ChevronDown,
+  BarChart3,
+  Clock,
 } from 'lucide-react'
 import {
   Dialog,
@@ -40,8 +40,129 @@ import {
 import { CONTRACT_ID } from '@/lib/soroban-client'
 
 interface RoomViewProps {
-  roomCode: string // This is now a room code (alphanumeric) OR room ID (number)
+  roomCode: string
 }
+
+// ── Probability Bar (Polymarket-style) ──────────────────
+
+function ProbabilityBar({ options, bets, totalPool, winningOption, isResolved }: {
+  options: string[]
+  bets: { option_idx: number; amount: number }[]
+  totalPool: number
+  winningOption: number
+  isResolved: boolean
+}) {
+  const segments = options.map((opt, idx) => {
+    const optBets = bets.filter(b => b.option_idx === idx)
+    const pool = optBets.reduce((s, b) => s + b.amount, 0)
+    const pct = totalPool > 0 ? (pool / totalPool) * 100 : 100 / options.length
+    return { label: opt, pct: Math.round(pct), pool, count: optBets.length, idx }
+  })
+
+  // Colors rotate through a curated palette
+  const colors = [
+    { bg: 'bg-emerald-500', text: 'text-emerald-400', bar: 'bg-emerald-500/20', ring: 'ring-emerald-500/30' },
+    { bg: 'bg-rose-500', text: 'text-rose-400', bar: 'bg-rose-500/20', ring: 'ring-rose-500/30' },
+    { bg: 'bg-blue-500', text: 'text-blue-400', bar: 'bg-blue-500/20', ring: 'ring-blue-500/30' },
+    { bg: 'bg-amber-500', text: 'text-amber-400', bar: 'bg-amber-500/20', ring: 'ring-amber-500/30' },
+    { bg: 'bg-violet-500', text: 'text-violet-400', bar: 'bg-violet-500/20', ring: 'ring-violet-500/30' },
+    { bg: 'bg-cyan-500', text: 'text-cyan-400', bar: 'bg-cyan-500/20', ring: 'ring-cyan-500/30' },
+  ]
+
+  return (
+    <div className="space-y-1">
+      {/* Stacked bar */}
+      <div className="flex h-2.5 rounded-full overflow-hidden bg-white/[0.04]">
+        {segments.map((seg, i) => (
+          <div
+            key={i}
+            className={`${colors[i % colors.length].bg} transition-all duration-700 ease-out ${
+              isResolved && seg.idx === winningOption ? 'opacity-100' : isResolved ? 'opacity-30' : 'opacity-80'
+            }`}
+            style={{ width: `${Math.max(seg.pct, 2)}%` }}
+          />
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="flex items-center gap-4 flex-wrap pt-1">
+        {segments.map((seg, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-xs">
+            <div className={`w-2 h-2 rounded-full ${colors[i % colors.length].bg} ${
+              isResolved && seg.idx === winningOption ? '' : isResolved ? 'opacity-30' : ''
+            }`} />
+            <span className={`${isResolved && seg.idx === winningOption ? colors[i % colors.length].text : 'text-muted-foreground'} font-medium`}>
+              {seg.label}
+            </span>
+            <span className={`font-mono ${isResolved && seg.idx === winningOption ? 'text-foreground font-semibold' : 'text-muted-foreground/60'}`}>
+              {seg.pct}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Polymarket-style Odds Chart ─────────────────────────
+
+function OddsChart({ options, bets, totalPool }: {
+  options: string[]
+  bets: { option_idx: number; amount: number }[]
+  totalPool: number
+}) {
+  const colors = ['bg-emerald-500', 'bg-rose-500', 'bg-blue-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500']
+  const textColors = ['text-emerald-400', 'text-rose-400', 'text-blue-400', 'text-amber-400', 'text-violet-400', 'text-cyan-400']
+
+  const data = options.map((opt, idx) => {
+    const optBets = bets.filter(b => b.option_idx === idx)
+    const pool = optBets.reduce((s, b) => s + b.amount, 0)
+    const pct = totalPool > 0 ? (pool / totalPool) * 100 : 0
+    return { label: opt, pct, pool, count: optBets.length }
+  })
+
+  const maxPct = Math.max(...data.map(d => d.pct), 10)
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Market Odds</span>
+        </div>
+        <span className="text-xs text-muted-foreground/50 font-mono">{totalPool > 0 ? `${totalPool.toFixed(1)} XLM total` : 'No bets yet'}</span>
+      </div>
+
+      <div className="space-y-3">
+        {data.map((d, i) => (
+          <div key={i} className="space-y-1.5">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-foreground/80 font-medium truncate max-w-[60%]">{d.label}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground/60">{d.count} bet{d.count !== 1 ? 's' : ''}</span>
+                <span className={`font-mono font-semibold tabular-nums ${textColors[i % textColors.length]}`}>
+                  {d.pct.toFixed(0)}%
+                </span>
+              </div>
+            </div>
+            <div className="h-7 rounded-lg bg-white/[0.02] border border-white/[0.04] overflow-hidden relative">
+              <div
+                className={`h-full ${colors[i % colors.length]} opacity-15 rounded-lg transition-all duration-700 ease-out`}
+                style={{ width: `${(d.pct / maxPct) * 100}%` }}
+              />
+              <div className="absolute inset-0 flex items-center px-3">
+                <span className="text-xs font-mono text-muted-foreground/40">
+                  {d.pool > 0 ? `${d.pool.toFixed(1)} XLM` : '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Main Room View ──────────────────────────────────────
 
 export function RoomView({ roomCode }: RoomViewProps) {
   const { user, isConnected, balance } = useWallet()
@@ -56,265 +177,199 @@ export function RoomView({ roomCode }: RoomViewProps) {
   const [loading, setLoading] = useState(true)
   const [payouts, setPayouts] = useState<PayoutInfo[]>([])
   const [resolvedRoomId, setResolvedRoomId] = useState<number | null>(null)
+  const [showParticipants, setShowParticipants] = useState(false)
 
   useEffect(() => {
     const fetchRoom = async () => {
-      let foundRoom: OnChainRoom | null = null;
-
-      // Try as room code first
-      const roomId = getRoomIdFromCode(roomCode);
+      let foundRoom: OnChainRoom | null = null
+      const roomId = getRoomIdFromCode(roomCode)
       if (roomId !== null) {
-        foundRoom = await getRoom(roomId);
-        setResolvedRoomId(roomId);
+        foundRoom = await getRoom(roomId)
+        setResolvedRoomId(roomId)
       } else {
-        // Fallback: try as numeric ID for backwards compatibility
-        const numericId = parseInt(roomCode, 10);
+        const numericId = parseInt(roomCode, 10)
         if (!isNaN(numericId) && numericId > 0) {
-          foundRoom = await getRoom(numericId);
-          setResolvedRoomId(numericId);
+          foundRoom = await getRoom(numericId)
+          setResolvedRoomId(numericId)
         }
       }
-
       if (foundRoom) {
-        setRoom(foundRoom);
+        setRoom(foundRoom)
         if (foundRoom.status === 'Resolved') {
-          setPayouts(calculatePayouts(foundRoom));
+          setPayouts(calculatePayouts(foundRoom))
         }
       }
       setLoading(false)
     }
     fetchRoom()
-    // Poll for updates every 10 seconds (on-chain reads)
     const interval = setInterval(fetchRoom, 10000)
     return () => clearInterval(interval)
   }, [roomCode])
 
-  const copyContractId = () => {
-    navigator.clipboard.writeText(CONTRACT_ID)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const copyRoomLink = () => {
-    const shareCode = room?.code || roomCode;
+  const copyContractId = () => { navigator.clipboard.writeText(CONTRACT_ID); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+  const copyRoomLink = () => { 
+    const shareCode = room?.code || roomCode
     navigator.clipboard.writeText(`${window.location.origin}/room/${shareCode}`)
-    setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2000)
+    setCopiedLink(true); setTimeout(() => setCopiedLink(false), 2000) 
   }
 
   const handleJoin = async () => {
     if (!user || !room || selectedOption === null || resolvedRoomId === null) return
-
     setIsJoining(true)
     try {
-      // This calls the Soroban contract's place_bet function
-      // The contract transfers XLM from user -> contract address
-      // No server involved. Freighter prompts for signature.
-      const txHash = await placeBet(
-        user.walletAddress,
-        resolvedRoomId,
-        selectedOption,
-      )
-      console.log('Bet placed, tx:', txHash)
-      
-      // Refresh room state from chain
+      await placeBet(user.walletAddress, resolvedRoomId, selectedOption)
       const updated = await getRoom(resolvedRoomId)
       if (updated) setRoom(updated)
     } catch (error) {
-      console.error('Failed to place bet:', error)
-      alert("Transaction failed: " + (error instanceof Error ? error.message : JSON.stringify(error)))
-    } finally {
-      setIsJoining(false)
-    }
+      alert(error instanceof Error ? error.message : JSON.stringify(error))
+    } finally { setIsJoining(false) }
   }
 
   const handleResolve = async (winningOptionIdx: number) => {
     if (!user || !room || resolvedRoomId === null) return
-
     setIsResolving(true)
     try {
-      // The Soroban contract distributes funds to winners automatically
-      // No server touches the money. It's all on-chain.
-      const txHash = await resolveRoomOnChain(
-        user.walletAddress,
-        resolvedRoomId,
-        winningOptionIdx,
-      )
-      console.log('Room resolved, tx:', txHash)
-      
+      await resolveRoomOnChain(user.walletAddress, resolvedRoomId, winningOptionIdx)
       const updated = await getRoom(resolvedRoomId)
-      if (updated) {
-        setRoom(updated)
-        setPayouts(calculatePayouts(updated))
-        setResolveDialogOpen(false)
-      }
+      if (updated) { setRoom(updated); setPayouts(calculatePayouts(updated)); setResolveDialogOpen(false) }
     } catch (error) {
-      console.error('Failed to resolve room:', error)
-      alert("Resolution failed: " + (error instanceof Error ? error.message : JSON.stringify(error)))
-    } finally {
-      setIsResolving(false)
-    }
+      alert(error instanceof Error ? error.message : JSON.stringify(error))
+    } finally { setIsResolving(false) }
   }
 
   const handleCancel = async () => {
     if (!user || !room || resolvedRoomId === null) return
-
     setIsCancelling(true)
     try {
-      const txHash = await cancelRoom(user.walletAddress, resolvedRoomId)
-      console.log('Room cancelled, tx:', txHash)
-      
+      await cancelRoom(user.walletAddress, resolvedRoomId)
       const updated = await getRoom(resolvedRoomId)
       if (updated) setRoom(updated)
     } catch (error) {
-      console.error('Failed to cancel:', error)
-      alert("Cancel failed: " + (error instanceof Error ? error.message : JSON.stringify(error)))
-    } finally {
-      setIsCancelling(false)
-    }
+      alert(error instanceof Error ? error.message : JSON.stringify(error))
+    } finally { setIsCancelling(false) }
   }
+
+  // ── Loading / Not found ──
 
   if (loading) {
     return (
-      <Card className="max-w-2xl mx-auto glass rounded-2xl border-white/[0.06]">
-        <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Reading from Soroban contract...</p>
+      <div className="max-w-2xl mx-auto">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-12">
+          <div className="text-center">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-primary" />
+            <p className="text-sm text-muted-foreground">Reading contract state…</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   if (!room) {
     return (
-      <Card className="max-w-2xl mx-auto glass rounded-2xl border-white/[0.06]">
-        <CardContent className="pt-6">
-          <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Room Not Found</h2>
-            <p className="text-muted-foreground">
-              Room &quot;{roomCode}&quot; doesn&apos;t exist. Check the code and try again.
-            </p>
+      <div className="max-w-2xl mx-auto">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-12">
+          <div className="text-center">
+            <AlertCircle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <h2 className="text-base font-semibold mb-1">Room not found</h2>
+            <p className="text-sm text-muted-foreground">&quot;{roomCode}&quot; doesn&apos;t exist on-chain.</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
+  // ── Computed state ──
+
   const isCreator = user?.walletAddress === room.creator
-  const hasJoined = room.bets.some(
-    b => b.bettor === user?.walletAddress
-  )
-  const userBet = room.bets.find(
-    b => b.bettor === user?.walletAddress
-  )
+  const hasJoined = room.bets.some(b => b.bettor === user?.walletAddress)
+  const userBet = room.bets.find(b => b.bettor === user?.walletAddress)
   const canJoin = isConnected && !hasJoined && room.status === 'Open'
   const canResolve = isCreator && room.status === 'Open' && room.bets.length > 0
   const canCancel = isCreator && room.status === 'Open'
   const displayCode = room.code || roomCode
-
-  const statusColors = {
-    Open: 'bg-green-500/10 text-green-500 border-green-500/20',
-    Resolved: 'bg-primary/10 text-primary border-primary/20',
-    Cancelled: 'bg-red-500/10 text-red-500 border-red-500/20',
-  }
-
-  // Calculate potential winnings
-  const getOptionStats = (optionIdx: number) => {
-    const optionBets = room.bets.filter(b => b.option_idx === optionIdx)
-    const optionPool = optionBets.reduce((sum, b) => sum + b.amount, 0)
-    return {
-      count: optionBets.length,
-      pool: optionPool,
-      percentage: room.total_pool > 0 ? Math.round((optionPool / room.total_pool) * 100) : 0,
-    }
-  }
-
-  // Get user's payout info
   const userPayout = payouts.find(p => p.address === user?.walletAddress)
 
+  const statusConfig = {
+    Open: { label: 'Live', class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', dot: 'bg-emerald-400' },
+    Resolved: { label: 'Resolved', class: 'bg-primary/10 text-primary border-primary/20', dot: 'bg-primary' },
+    Cancelled: { label: 'Cancelled', class: 'bg-red-500/10 text-red-400 border-red-500/20', dot: 'bg-red-400' },
+  }
+
+  const sc = statusConfig[room.status]
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* On-chain verification badge */}
-      <div className="flex items-center justify-center gap-2.5 p-3 rounded-xl glass border-emerald-500/10 text-sm animate-fade-in">
-        <ShieldCheck className="w-4 h-4 text-green-500" />
-        <span className="text-green-400">On-Chain Verified — All state lives in Soroban Contract</span>
+    <div className="max-w-2xl mx-auto space-y-4">
+
+      {/* ── Header Card ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+        
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.04]">
+          <div className="flex items-center gap-2.5">
+            <Badge variant="outline" className={`${sc.class} gap-1.5 text-xs font-medium`}>
+              {room.status === 'Open' && (
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${sc.dot} opacity-75`} />
+                  <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${sc.dot}`} />
+                </span>
+              )}
+              {sc.label}
+            </Badge>
+            <span className="text-xs font-mono text-muted-foreground/50 tracking-wider">{displayCode}</span>
+            {isCreator && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">You</Badge>}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="sm" onClick={copyRoomLink} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+              {copiedLink ? <Check className="w-3 h-3 mr-1" /> : <Share2 className="w-3 h-3 mr-1" />}
+              Share
+            </Button>
+            <Button variant="ghost" size="sm" onClick={copyContractId} className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+              {copied ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
+              Contract
+            </Button>
+          </div>
+        </div>
+
+        {/* Question */}
+        <div className="px-5 pt-5 pb-4">
+          <h1 className="text-lg font-semibold leading-snug text-foreground/95">{room.description}</h1>
+          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground/60">
+            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{room.bets.length} participant{room.bets.length !== 1 ? 's' : ''}</span>
+            <span className="flex items-center gap-1"><Coins className="w-3.5 h-3.5" />{room.total_pool.toFixed(1)} XLM pool</span>
+            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{room.stake_amount} XLM entry</span>
+          </div>
+        </div>
+
+        {/* Probability bar */}
+        <div className="px-5 pb-5">
+          <ProbabilityBar 
+            options={room.options} 
+            bets={room.bets} 
+            totalPool={room.total_pool} 
+            winningOption={room.winning_option}
+            isResolved={room.status === 'Resolved'}
+          />
+        </div>
       </div>
 
-      <Card className="glass rounded-2xl border-white/[0.06] animate-scale-in">
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={statusColors[room.status]}>
-                  {room.status}
-                </Badge>
-                {isCreator && (
-                  <Badge variant="secondary">Creator</Badge>
-                )}
-                <Badge variant="outline" className="font-mono text-xs tracking-wider">
-                  {displayCode}
-                </Badge>
-              </div>
-              <CardTitle className="text-xl">{room.description}</CardTitle>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyRoomLink}
-                className="shrink-0"
-              >
-                {copiedLink ? (
-                  <Check className="w-4 h-4 mr-2" />
-                ) : (
-                  <Share2 className="w-4 h-4 mr-2" />
-                )}
-                Share
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyContractId}
-                className="shrink-0"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 mr-2" />
-                ) : (
-                  <Copy className="w-4 h-4 mr-2" />
-                )}
-                Contract
-              </Button>
-            </div>
-          </div>
-          <CardDescription className="flex flex-wrap gap-4 pt-2">
-            <span className="flex items-center gap-1.5">
-              <Users className="w-4 h-4" />
-              {room.bets.length} bet{room.bets.length !== 1 && 's'}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Coins className="w-4 h-4" />
-              {room.total_pool.toFixed(1)} XLM pool
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Clock className="w-4 h-4" />
-              Stake: {room.stake_amount} XLM
-            </span>
-          </CardDescription>
-        </CardHeader>
+      {/* ── Odds Chart ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] p-5">
+        <OddsChart options={room.options} bets={room.bets} totalPool={room.total_pool} />
+      </div>
 
-        <CardContent className="space-y-6">
-          {/* Options Grid */}
-          <div className="space-y-3">
+      {/* ── Bet / Resolution Section ── */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+        
+        {/* Betting options (only when room is open) */}
+        {room.status === 'Open' && (
+          <div className="p-5 space-y-3">
             <h3 className="text-sm font-medium text-muted-foreground">
-              {room.status === 'Resolved' ? 'Final Results' : 'Select Your Prediction'}
+              {canJoin ? 'Select your prediction' : hasJoined ? 'Your prediction' : 'Predictions'}
             </h3>
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {room.options.map((option, index) => {
-                const stats = getOptionStats(index)
-                const isWinner = room.status === 'Resolved' && room.winning_option === index
+                const optBets = room.bets.filter(b => b.option_idx === index)
+                const pct = room.total_pool > 0 ? Math.round((optBets.reduce((s, b) => s + b.amount, 0) / room.total_pool) * 100) : 0
                 const isSelected = selectedOption === index
                 const isUserBet = userBet?.option_idx === index
 
@@ -324,226 +379,145 @@ export function RoomView({ roomCode }: RoomViewProps) {
                     onClick={() => canJoin && setSelectedOption(index)}
                     disabled={!canJoin}
                     className={`
-                      relative p-4 rounded-lg border-2 text-left transition-all
-                      ${isWinner 
-                        ? 'border-accent bg-accent/10' 
-                        : isSelected 
-                        ? 'border-primary bg-primary/5' 
-                        : isUserBet
-                        ? 'border-primary/50 bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                      }
-                      ${!canJoin && 'cursor-default'}
+                      flex items-center justify-between p-3.5 rounded-xl border text-left transition-all duration-200
+                      ${isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' 
+                        : isUserBet ? 'border-primary/40 bg-primary/[0.03]'
+                        : 'border-white/[0.06] hover:border-white/[0.12] bg-white/[0.01]'}
+                      ${canJoin ? 'cursor-pointer' : 'cursor-default'}
                     `}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isWinner && (
-                          <Trophy className="w-5 h-5 text-accent" />
-                        )}
-                        <span className="font-medium">{option}</span>
-                        {isUserBet && (
-                          <Badge variant="secondary" className="text-xs">
-                            Your bet
-                          </Badge>
-                        )}
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all
+                        ${isSelected ? 'border-primary' : isUserBet ? 'border-primary/50' : 'border-white/[0.15]'}
+                      `}>
+                        {(isSelected || isUserBet) && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">{stats.count} bets</div>
-                        <div className="text-xs text-muted-foreground">
-                          {stats.pool.toFixed(1)} XLM ({stats.percentage}%)
-                        </div>
-                      </div>
+                      <span className="text-sm font-medium text-foreground/90">{option}</span>
+                      {isUserBet && <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Your bet</Badge>}
                     </div>
-                    {/* Progress bar */}
-                    <div className="mt-3 h-1.5 bg-secondary rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all ${isWinner ? 'bg-accent' : 'bg-primary/50'}`}
-                        style={{ width: `${stats.percentage}%` }}
-                      />
-                    </div>
+                    <span className="text-xs font-mono text-muted-foreground/50">{pct}%</span>
                   </button>
                 )
               })}
             </div>
-          </div>
 
-          {/* Action Buttons */}
-          {canJoin && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Entry stake</span>
-                <span className="font-mono font-medium">{room.stake_amount} XLM</span>
-              </div>
-              {balance !== null && balance < room.stake_amount && (
-                <p className="text-sm text-destructive">
-                  Insufficient balance. You need {room.stake_amount} XLM to join.
-                </p>
-              )}
-              <Button
-                onClick={handleJoin}
-                disabled={selectedOption === null || isJoining || (balance !== null && balance < room.stake_amount)}
-                className="w-full"
-              >
-                {isJoining ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Signing & Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Coins className="w-4 h-4 mr-2" />
-                    Place Bet ({room.stake_amount} XLM) — On-Chain
-                  </>
+            {/* Place bet button */}
+            {canJoin && (
+              <div className="pt-2 space-y-2">
+                {balance !== null && balance < room.stake_amount && (
+                  <p className="text-xs text-red-400">Insufficient balance. Need {room.stake_amount} XLM.</p>
                 )}
-              </Button>
-            </div>
-          )}
-
-          {hasJoined && room.status === 'Open' && (
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-              <p className="text-sm text-center">
-                You bet <span className="font-medium">{userBet?.amount} XLM</span> on{' '}
-                <span className="font-medium text-primary">{room.options[userBet?.option_idx || 0]}</span>
-              </p>
-            </div>
-          )}
-
-          {/* ─── POST-RESOLUTION: Payout Summary ─── */}
-          {room.status === 'Resolved' && (
-            <div className="space-y-4">
-              {/* Winner announcement */}
-              <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
-                <div className="flex items-center justify-center gap-2">
-                  <Trophy className="w-5 h-5 text-accent" />
-                  <span className="font-medium">
-                    Winning answer: {room.options[room.winning_option]}
-                  </span>
-                </div>
+                <Button
+                  onClick={handleJoin}
+                  disabled={selectedOption === null || isJoining || (balance !== null && balance < room.stake_amount)}
+                  className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-sm font-medium"
+                >
+                  {isJoining ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Confirming in Freighter…</>
+                  ) : (
+                    <>Place Bet · {room.stake_amount} XLM</>
+                  )}
+                </Button>
               </div>
+            )}
 
-              {/* Your personal result */}
-              {userPayout && (
-                <div className={`p-4 rounded-lg border ${
-                  userPayout.isWinner 
-                    ? 'bg-green-500/5 border-green-500/20' 
-                    : 'bg-red-500/5 border-red-500/20'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {userPayout.isWinner ? (
-                        <TrendingUp className="w-5 h-5 text-green-400" />
-                      ) : (
-                        <TrendingDown className="w-5 h-5 text-red-400" />
-                      )}
-                      <span className="font-medium">
-                        {userPayout.isWinner ? 'You won!' : 'You lost'}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className={`font-mono font-semibold ${
-                        userPayout.isWinner ? 'text-green-400' : 'text-red-400'
-                      }`}>
-                        {userPayout.isWinner ? '+' : ''}{userPayout.profit.toFixed(1)} XLM
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Staked {userPayout.betAmount.toFixed(1)} → Received {userPayout.payout.toFixed(1)} XLM
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+            {hasJoined && (
+              <div className="flex items-center justify-center gap-2 py-2 text-sm text-primary/70">
+                <Check className="w-3.5 h-3.5" />
+                <span>You bet {userBet?.amount} XLM on <strong>{room.options[userBet?.option_idx || 0]}</strong></span>
+              </div>
+            )}
+          </div>
+        )}
 
-              {/* Full payout breakdown */}
-              {payouts.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    Payout Breakdown (On-Chain Settled)
-                  </h4>
-                  <div className="space-y-2">
-                    {payouts.map((p, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center justify-between p-3 rounded-lg text-sm ${
-                          p.isWinner 
-                            ? 'bg-green-500/5 border border-green-500/10' 
-                            : 'bg-white/[0.02] border border-white/[0.04]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">
-                            {p.address.slice(0, 4)}...{p.address.slice(-4)}
-                          </span>
-                          {p.address === user?.walletAddress && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">You</Badge>
-                          )}
-                          {p.isWinner && (
-                            <Trophy className="w-3.5 h-3.5 text-accent" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="text-muted-foreground">
-                            {p.betAmount.toFixed(1)} XLM
-                          </span>
-                          <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                          <span className={`font-medium ${
-                            p.isWinner ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {p.payout.toFixed(1)} XLM
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {room.status === 'Cancelled' && (
-            <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-              <div className="flex items-center justify-center gap-2">
-                <Ban className="w-5 h-5 text-red-500" />
-                <span className="font-medium text-red-400">
-                  Room cancelled — all bets refunded on-chain
-                </span>
+        {/* Resolved state */}
+        {room.status === 'Resolved' && (
+          <div className="p-5 space-y-4">
+            {/* Winner */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-accent/5 border border-accent/10">
+              <Trophy className="w-5 h-5 text-accent shrink-0" />
+              <div>
+                <div className="text-sm font-medium">Winning outcome</div>
+                <div className="text-base font-semibold text-accent">{room.options[room.winning_option]}</div>
               </div>
             </div>
-          )}
 
-          <div className="flex gap-2">
+            {/* Your result */}
+            {userPayout && (
+              <div className={`flex items-center justify-between p-4 rounded-xl border ${
+                userPayout.isWinner ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-red-500/5 border-red-500/10'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  {userPayout.isWinner ? <TrendingUp className="w-4 h-4 text-emerald-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
+                  <span className="text-sm font-medium">{userPayout.isWinner ? 'You won!' : 'Better luck next time'}</span>
+                </div>
+                <div className="text-right">
+                  <div className={`font-mono font-semibold text-sm ${userPayout.isWinner ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {userPayout.isWinner ? '+' : ''}{userPayout.profit.toFixed(1)} XLM
+                  </div>
+                  <div className="text-[11px] text-muted-foreground/50 font-mono">
+                    {userPayout.betAmount.toFixed(1)} → {userPayout.payout.toFixed(1)} XLM
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Payouts table */}
+            {payouts.length > 0 && (
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-muted-foreground/50 uppercase tracking-wider">Settlement</span>
+                <div className="divide-y divide-white/[0.04]">
+                  {payouts.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between py-2.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-muted-foreground/60">{p.address.slice(0, 4)}…{p.address.slice(-4)}</span>
+                        {p.address === user?.walletAddress && <Badge variant="secondary" className="text-[9px] px-1 py-0">You</Badge>}
+                        {p.isWinner && <Trophy className="w-3 h-3 text-accent" />}
+                      </div>
+                      <div className="flex items-center gap-2 font-mono">
+                        <span className="text-muted-foreground/40">{p.betAmount.toFixed(1)}</span>
+                        <ArrowRight className="w-3 h-3 text-muted-foreground/20" />
+                        <span className={p.isWinner ? 'text-emerald-400 font-medium' : 'text-red-400'}>{p.payout.toFixed(1)} XLM</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Cancelled state */}
+        {room.status === 'Cancelled' && (
+          <div className="p-5">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/5 border border-red-500/10">
+              <Ban className="w-5 h-5 text-red-400 shrink-0" />
+              <div className="text-sm"><strong className="text-red-400">Cancelled</strong> — all bets have been refunded on-chain.</div>
+            </div>
+          </div>
+        )}
+
+        {/* Creator actions */}
+        {(canResolve || canCancel) && (
+          <div className="flex gap-2 px-5 pb-5">
             {canResolve && (
               <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="flex-1">
-                    <Trophy className="w-4 h-4 mr-2" />
-                    Resolve Prediction
+                  <Button variant="outline" className="flex-1 h-10 rounded-xl text-sm border-white/[0.08]">
+                    <Trophy className="w-3.5 h-3.5 mr-2" />Resolve
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Resolve Prediction</DialogTitle>
+                    <DialogTitle>Declare Winner</DialogTitle>
                     <DialogDescription>
-                      Select the winning outcome. The smart contract will
-                      automatically distribute the pool to all winners. This is
-                      an irreversible on-chain transaction.
+                      The smart contract will automatically distribute the pool. This is irreversible.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="grid gap-2 pt-4">
+                  <div className="grid gap-2 pt-2">
                     {room.options.map((option, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        onClick={() => handleResolve(index)}
-                        disabled={isResolving}
-                        className="justify-start"
-                      >
-                        {isResolving ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Trophy className="w-4 h-4 mr-2" />
-                        )}
+                      <Button key={index} variant="outline" onClick={() => handleResolve(index)} disabled={isResolving} className="justify-start h-11 rounded-xl">
+                        {isResolving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trophy className="w-4 h-4 mr-2" />}
                         {option}
                       </Button>
                     ))}
@@ -551,87 +525,65 @@ export function RoomView({ roomCode }: RoomViewProps) {
                 </DialogContent>
               </Dialog>
             )}
-
             {canCancel && (
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={handleCancel}
-                disabled={isCancelling}
-              >
-                {isCancelling ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Ban className="w-4 h-4 mr-2" />
-                )}
-                Cancel Room
+              <Button variant="outline" className="flex-1 h-10 rounded-xl text-sm border-red-500/20 text-red-400 hover:bg-red-500/5 hover:text-red-300" onClick={handleCancel} disabled={isCancelling}>
+                {isCancelling ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <Ban className="w-3.5 h-3.5 mr-2" />}
+                Cancel
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
-      {/* Participants List */}
-      {room.bets.length > 0 && room.status !== 'Resolved' && (
-        <Card className="glass rounded-2xl border-white/[0.06]">
-          <CardHeader>
-            <CardTitle className="text-lg text-gradient">On-Chain Bets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {room.bets.map((bet, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-white/[0.08] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-medium text-primary">
-                        {bet.bettor.slice(0, 2)}
-                      </span>
+      {/* ── Participants (collapsible) ── */}
+      {room.bets.length > 0 && room.status === 'Open' && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.015] overflow-hidden">
+          <button 
+            onClick={() => setShowParticipants(!showParticipants)}
+            className="w-full flex items-center justify-between px-5 py-3.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span className="font-medium">Participants ({room.bets.length})</span>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showParticipants ? 'rotate-180' : ''}`} />
+          </button>
+          {showParticipants && (
+            <div className="px-5 pb-4 divide-y divide-white/[0.04]">
+              {room.bets.map((bet, i) => (
+                <div key={i} className="flex items-center justify-between py-2.5 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-white/[0.04] flex items-center justify-center text-[10px] font-mono text-muted-foreground/60">
+                      {bet.bettor.slice(0, 2)}
                     </div>
-                    <div>
-                      <p className="font-mono text-sm">
-                        {bet.bettor.slice(0, 4)}...
-                        {bet.bettor.slice(-4)}
-                      </p>
-                    </div>
+                    <span className="font-mono text-muted-foreground/60">{bet.bettor.slice(0, 4)}…{bet.bettor.slice(-4)}</span>
+                    {bet.bettor === user?.walletAddress && <Badge variant="secondary" className="text-[9px] px-1 py-0">You</Badge>}
                   </div>
-                  <div className="text-right">
-                    <Badge variant="secondary">{room.options[bet.option_idx]}</Badge>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {bet.amount} XLM
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-white/[0.06]">{room.options[bet.option_idx]}</Badge>
+                    <span className="font-mono text-muted-foreground/40">{bet.amount} XLM</span>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       )}
 
-      {/* Transaction Info */}
-      <Card className="glass rounded-2xl border-white/[0.06]">
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <ShieldCheck className="w-4 h-4 text-green-500" />
-              <span>Contract: <span className="font-mono text-xs">{CONTRACT_ID.slice(0, 8)}...{CONTRACT_ID.slice(-8)}</span></span>
-            </div>
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <ExternalLink className="w-4 h-4" />
-              <a
-                href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors underline-offset-4 hover:underline"
-              >
-                Verify on Stellar Explorer
-              </a>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Footer: on-chain verification ── */}
+      <div className="flex items-center justify-center gap-4 py-3 text-[11px] text-muted-foreground/30">
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className="w-3 h-3 text-emerald-500/50" />
+          <span className="font-mono">{CONTRACT_ID.slice(0, 6)}…{CONTRACT_ID.slice(-6)}</span>
+        </div>
+        <span>·</span>
+        <a
+          href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 hover:text-muted-foreground/60 transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" />
+          Stellar Explorer
+        </a>
+      </div>
     </div>
   )
 }
